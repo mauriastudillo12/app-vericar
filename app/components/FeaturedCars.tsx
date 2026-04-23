@@ -32,7 +32,7 @@ export default function FeaturedCars() {
   const formatPrecio = (precio: number) => '$' + precio.toLocaleString('es-CL')
 
   return (
-    <section style={{ background: '#f5f5f5', padding: '80px 40px' }}>
+    <section className="section-padding" style={{ background: '#f5f5f5', padding: '80px 40px' }}>
 
       <style>{`
         .car-card { transition: transform 0.25s ease, box-shadow 0.25s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
@@ -43,7 +43,8 @@ export default function FeaturedCars() {
         .btn-ver-todos:hover { background: #000 !important; color: #fff !important; }
       `}</style>
 
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', maxWidth: '1200px', margin: '0 auto 40px' }}>
+      {/* Encabezado con botón ver todos */}
+      <div className="section-header" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', maxWidth: '1200px', margin: '0 auto 40px' }}>
         <div>
           <p style={{ color: '#2563eb', fontSize: '12px', fontWeight: '700', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '8px' }}>
             Mayor visibilidad
@@ -56,7 +57,7 @@ export default function FeaturedCars() {
           </p>
         </div>
         <Link href="/autos" style={{ textDecoration: 'none' }}>
-          <button className="btn-ver-todos" style={{ background: 'transparent', border: '1.5px solid #000', color: '#000', padding: '12px 28px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+          <button className="btn-ver-todos btn-ver-todos-resp" style={{ background: 'transparent', border: '1.5px solid #000', color: '#000', padding: '12px 28px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
             Ver todos los autos →
           </button>
         </Link>
@@ -67,11 +68,13 @@ export default function FeaturedCars() {
       ) : autos.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px', color: '#888', fontSize: '14px' }}>No hay autos destacados por ahora</div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+        /* Grid responsive — 3 columnas en desktop, 1 en móvil */
+        <div className="grid-responsive" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', maxWidth: '1200px', margin: '0 auto' }}>
           {autos.map((auto) => (
             <Link key={auto.id} href={`/autos/${auto.id}`} style={{ textDecoration: 'none' }}>
               <div className="car-card" style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', border: '1px solid #eee', cursor: 'pointer' }}>
 
+                {/* Imagen del auto */}
                 <div style={{ width: '100%', height: '200px', background: 'linear-gradient(135deg, #e8e8e8 0%, #d5d5d5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
                   {(() => {
                     const fotosArray = typeof auto.fotos === 'string' && auto.fotos
@@ -91,6 +94,7 @@ export default function FeaturedCars() {
                   )}
                 </div>
 
+                {/* Datos del auto */}
                 <div style={{ padding: '18px 20px' }}>
                   <div style={{ fontSize: '16px', fontWeight: '700', color: '#000', marginBottom: '4px' }}>{auto.nombre}</div>
                   <div style={{ fontSize: '13px', color: '#888', marginBottom: '14px' }}>

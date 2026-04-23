@@ -148,17 +148,17 @@ export default function Home() {
           </div>
 
           {/* Título */}
-          <h1 className="hero-title" style={{
-            fontSize: '4.5rem',
-            fontWeight: '900',
-            color: '#fff',
-            letterSpacing: '10px',
-            marginBottom: '16px',
-            lineHeight: 1,
-            textShadow: '0 4px 24px rgba(0,0,0,0.5)',
-          }}>
-            VERICAR
-          </h1>
+          <h1 className="hero-title hero-title-text" style={{
+  fontSize: '4.5rem',
+  fontWeight: '900',
+  color: '#fff',
+  letterSpacing: '10px',
+  marginBottom: '16px',
+  lineHeight: 1,
+  textShadow: '0 4px 24px rgba(0,0,0,0.5)',
+}}>
+  VERICAR
+</h1>
 
           {/* Subtítulo */}
           <p className="hero-sub" style={{
@@ -212,7 +212,7 @@ export default function Home() {
           </div>
 
           {/* Stats */}
-          <div className="hero-stats" style={{ display: 'flex', justifyContent: 'center', gap: '48px' }}>
+          <div className="hero-stats hero-stats-container" style={{ display: 'flex', justifyContent: 'center', gap: '48px' }}>
             {[
               { num: '1.200+', label: 'Autos publicados' },
               { num: '100%', label: 'Vendedores verificados' },

@@ -6,7 +6,7 @@ import Link from 'next/link'
 
 export default function ComoFunciona() {
   return (
-    <section style={{background: '#fff', padding: '80px 40px'}}>
+    <section className="section-padding" style={{background: '#fff', padding: '80px 40px'}}>
 
       <style>{`
         .paso-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
@@ -32,8 +32,8 @@ export default function ComoFunciona() {
           </p>
         </div>
 
-        {/* Grid de 4 pasos */}
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '56px'}}>
+        {/* Grid de 4 pasos — responsive a 1 columna en móvil */}
+        <div className="grid-responsive" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '56px'}}>
           {[
             {
               numero: '01',
@@ -74,13 +74,9 @@ export default function ComoFunciona() {
               boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
               textAlign: 'center',
             }}>
-
-              {/* Número del paso */}
               <div style={{fontSize: '11px', fontWeight: '800', color: '#2563eb', letterSpacing: '2px', marginBottom: '20px'}}>
                 PASO {paso.numero}
               </div>
-
-              {/* Ícono con fondo de color */}
               <div style={{
                 width: '68px', height: '68px', borderRadius: '18px',
                 background: paso.color, border: `1.5px solid ${paso.colorBorde}`,
@@ -89,23 +85,18 @@ export default function ComoFunciona() {
               }}>
                 {paso.icono}
               </div>
-
-              {/* Título */}
               <h3 style={{fontSize: '16px', fontWeight: '800', color: '#000', marginBottom: '10px', lineHeight: 1.3}}>
                 {paso.titulo}
               </h3>
-
-              {/* Descripción */}
               <p style={{fontSize: '13px', color: '#888', lineHeight: 1.7}}>
                 {paso.descripcion}
               </p>
-
             </div>
           ))}
         </div>
 
-        {/* Banners inferiores — compra/venta y talleres */}
-        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
+        {/* Banners inferiores — responsive a 1 columna en móvil */}
+        <div className="grid-responsive-2" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
 
           {/* Banner compra y venta */}
           <div style={{
@@ -121,7 +112,7 @@ export default function ComoFunciona() {
                 Únete a miles de chilenos que ya usan VeriCar para comprar y vender autos con total seguridad.
               </p>
             </div>
-            <div style={{display: 'flex', gap: '12px'}}>
+            <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
               <Link href="/registro" style={{textDecoration: 'none'}}>
                 <button className="btn-banner" style={{
                   background: '#2563eb', color: '#fff', border: 'none',
@@ -158,7 +149,7 @@ export default function ComoFunciona() {
                 Encuentra talleres verificados cerca de ti. Mecánica, pintura, frenos y mucho más en tu región.
               </p>
             </div>
-            <div style={{display: 'flex', gap: '12px'}}>
+            <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
               <Link href="/talleres" style={{textDecoration: 'none'}}>
                 <button className="btn-banner" style={{
                   background: '#fff', color: '#2563eb', border: 'none',

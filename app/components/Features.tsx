@@ -1,3 +1,4 @@
+
 // Componente de secciones principales de VeriCar
 // Muestra los 3 servicios que ofrece la plataforma
 // Cada tarjeta lleva a su sección correspondiente
@@ -36,7 +37,7 @@ const secciones = [
 
 export default function Features() {
   return (
-    <section style={{background: '#f5f5f5', padding: '80px 40px'}}>
+    <section className="section-padding" style={{background: '#f5f5f5', padding: '80px 40px'}}>
 
       <style>{`
         .feature-card { transition: transform 0.25s ease, box-shadow 0.25s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
@@ -47,10 +48,7 @@ export default function Features() {
 
       {/* Encabezado */}
       <div style={{textAlign: 'center', marginBottom: '56px'}}>
-        <p style={{
-          color: '#2563eb', fontSize: '12px', fontWeight: '700',
-          letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '12px',
-        }}>
+        <p style={{color: '#2563eb', fontSize: '12px', fontWeight: '700', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '12px'}}>
           Todo en un solo lugar
         </p>
         <h2 style={{fontSize: '2.2rem', fontWeight: '900', color: '#000', lineHeight: 1.2, marginBottom: '16px'}}>
@@ -61,8 +59,8 @@ export default function Features() {
         </p>
       </div>
 
-      {/* Grid de 3 secciones */}
-      <div style={{
+      {/* Grid de 3 tarjetas — responsive a 1 columna en móvil */}
+      <div className="grid-responsive" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(3, 1fr)',
         gap: '24px',
@@ -100,7 +98,7 @@ export default function Features() {
               {s.desc}
             </p>
 
-            {/* Botón */}
+            {/* Link a la sección */}
             <Link href={s.ruta} style={{textDecoration: 'none'}}>
               <div className="feature-link" style={{
                 display: 'inline-block',

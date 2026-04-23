@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { getNombreRegion } from '../lib/regiones'
 
-
 export default function FeaturedTalleres() {
 
   const [talleres, setTalleres] = useState<any[]>([])
@@ -31,7 +30,7 @@ export default function FeaturedTalleres() {
   }, [])
 
   return (
-    <section style={{background: '#f5f5f5', padding: '80px 40px'}}>
+    <section className="section-padding" style={{background: '#f5f5f5', padding: '80px 40px'}}>
 
       <style>{`
         .taller-card-home { transition: transform 0.25s ease, box-shadow 0.25s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
@@ -40,8 +39,8 @@ export default function FeaturedTalleres() {
         .btn-ver-talleres:hover { background: #000 !important; color: #fff !important; }
       `}</style>
 
-      {/* Encabezado */}
-      <div style={{display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', maxWidth: '1200px', margin: '0 auto 40px'}}>
+      {/* Encabezado con botón ver todos */}
+      <div className="section-header" style={{display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', maxWidth: '1200px', margin: '0 auto 40px'}}>
         <div>
           <p style={{color: '#2563eb', fontSize: '12px', fontWeight: '700', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '8px'}}>
             Talleres mecánicos
@@ -56,7 +55,7 @@ export default function FeaturedTalleres() {
         <button
           className="btn-ver-talleres"
           onClick={() => router.push('/talleres')}
-          style={{background: 'transparent', border: '1.5px solid #000', color: '#000', padding: '12px 28px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer'}}
+          style={{background: 'transparent', border: '1.5px solid #000', color: '#000', padding: '12px 28px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap'}}
         >
           Ver todos los talleres →
         </button>
@@ -68,7 +67,8 @@ export default function FeaturedTalleres() {
       ) : talleres.length === 0 ? (
         <div style={{textAlign: 'center', padding: '60px', color: '#888', fontSize: '14px'}}>No hay talleres destacados por ahora</div>
       ) : (
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', maxWidth: '1200px', margin: '0 auto'}}>
+        /* Grid responsive — 3 columnas en desktop, 1 en móvil */
+        <div className="grid-responsive" style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', maxWidth: '1200px', margin: '0 auto'}}>
           {talleres.map((taller) => (
             <div
               key={taller.id}
@@ -76,7 +76,6 @@ export default function FeaturedTalleres() {
               onClick={() => router.push(`/talleres/${taller.id}`)}
               style={{background: '#fff', borderRadius: '16px', overflow: 'hidden', border: '1px solid #eee', cursor: 'pointer'}}
             >
-
               {/* Imagen */}
               <div style={{width: '100%', height: '180px', background: 'linear-gradient(135deg, #e8e8e8 0%, #d5d5d5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'}}>
                 {taller.foto_url
@@ -88,7 +87,7 @@ export default function FeaturedTalleres() {
               {/* Cuerpo */}
               <div style={{padding: '18px 20px'}}>
                 <div style={{fontSize: '16px', fontWeight: '700', color: '#000', marginBottom: '4px'}}>{taller.nombre}</div>
-                <div style={{fontSize: '12px', color: '#888', marginBottom: '10px'}}>📍 {taller.direccion} · {getNombreRegion(taller.region)}</div>
+                <div style={{fontSize: '12px', color: '#888', marginBottom: '10px'}}>📍 {taller.direccion} · {taller.comuna}</div>
 
                 {/* Servicios */}
                 <div style={{display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '12px'}}>

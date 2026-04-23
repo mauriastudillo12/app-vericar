@@ -24,3 +24,60 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ===== RESPONSIVE MÓVIL ===== */
+@media (max-width: 768px) {
+
+  /* Grid responsivo — clase que usaremos en componentes */
+  .grid-responsive {
+    grid-template-columns: 1fr !important;
+  }
+
+  .grid-responsive-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Padding de secciones */
+  .section-padding {
+    padding: 48px 16px !important;
+  }
+
+  /* Encabezados de sección con botón */
+  .section-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+
+  /* Ocultar botón "Ver todos" en móvil y mostrarlo abajo */
+  .btn-ver-todos {
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  /* Navbar padding */
+  .navbar-inner {
+    padding: 0 16px !important;
+  }
+
+  /* Hero título */
+  .hero-title-text {
+    font-size: 3rem !important;
+    letter-spacing: 4px !important;
+  }
+
+  /* Stats del hero */
+  .hero-stats-container {
+    gap: 20px !important;
+  }
+
+  /* Pasos de cómo funciona */
+  .pasos-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Banners inferiores */
+  .banners-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
