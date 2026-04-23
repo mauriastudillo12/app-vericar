@@ -1,0 +1,415 @@
+// Página de verificación de identidad
+// El usuario ingresa su RUT y sube foto del carnet por ambos lados
+// El admin revisa y aprueba desde el panel de administración
+
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import Navbar from '../components/Navbar'
+import { supabase } from '../lib/supabase'
+
+// Función para validar RUT chileno con algoritmo Módulo 11
+// No necesita API — corre directo en el navegador
+const validarRUT = (rut: string): boolean => {
+  const rutLimpio = rut.replace(/\./g, '').replace(/-/g, '').toLowerCase()
+  if (rutLimpio.length < 2) return false
+
+  const numero = rutLimpio.slice(0, -1)
+  const dv = rutLimpio.slice(-1)
+
+  if (!/^\d+$/.test(numero)) return false
+
+  let suma = 0
+  let multiplicador = 2
+
+  for (let i = numero.length - 1; i >= 0; i--) {
+    suma += parseInt(numero[i]) * multiplicador
+    multiplicador = multiplicador === 7 ? 2 : multiplicador + 1
+  }
+
+  const dvEsperado = 11 - (suma % 11)
+  const dvCalculado = dvEsperado === 11 ? '0' : dvEsperado === 10 ? 'k' : String(dvEsperado)
+
+  return dv === dvCalculado
+}
+
+// Función para formatear el RUT mientras el usuario escribe
+// Ej: 12345678 → 12.345.678
+const formatearRUT = (rut: string): string => {
+  const rutLimpio = rut.replace(/\./g, '').replace(/-/g, '').replace(/[^0-9kK]/g, '')
+  if (rutLimpio.length <= 1) return rutLimpio
+
+  const numero = rutLimpio.slice(0, -1)
+  const dv = rutLimpio.slice(-1)
+
+  const numeroFormateado = numero.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return `${numeroFormateado}-${dv}`
+}
+
+export default function Verificar() {
+
+  const router = useRouter()
+  const [usuario, setUsuario] = useState<any>(null)
+  const [perfil, setPerfil] = useState<any>(null)
+  const [cargando, setCargando] = useState(true)
+  const [enviando, setEnviando] = useState(false)
+  const [exito, setExito] = useState(false)
+  const [error, setError] = useState('')
+
+  // Estado del formulario
+  const [rut, setRut] = useState('')
+  const [rutValido, setRutValido] = useState<boolean | null>(null)
+  const [fotoAnverso, setFotoAnverso] = useState<File | null>(null)
+  const [fotoReverso, setFotoReverso] = useState<File | null>(null)
+  const [previewAnverso, setPreviewAnverso] = useState('')
+  const [previewReverso, setPreviewReverso] = useState('')
+
+  const inputAnversoRef = useRef<HTMLInputElement>(null)
+  const inputReversoRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const iniciar = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.push('/login'); return }
+      setUsuario(session.user)
+
+      // Cargar perfil
+      const { data: perfilData } = await supabase
+        .from('perfiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+
+      setPerfil(perfilData)
+
+      // Si ya está verificado redirigir al perfil
+      if (perfilData?.verificado) { router.push('/perfil'); return }
+
+      // Si ya tiene RUT guardado pre-rellenar
+      if (perfilData?.rut) setRut(perfilData.rut)
+
+      setCargando(false)
+    }
+    iniciar()
+  }, [])
+
+  // Validar RUT en tiempo real mientras el usuario escribe
+  const handleRutChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.target.value
+    const formateado = formatearRUT(valor)
+    setRut(formateado)
+
+    // Validar solo si tiene longitud suficiente
+    if (formateado.length >= 9) {
+      setRutValido(validarRUT(formateado))
+    } else {
+      setRutValido(null)
+    }
+  }
+
+  // Manejar selección de foto anverso
+  const handleAnverso = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = e.target.files?.[0]
+    if (!archivo) return
+    setFotoAnverso(archivo)
+    const reader = new FileReader()
+    reader.onload = (e) => setPreviewAnverso(e.target?.result as string)
+    reader.readAsDataURL(archivo)
+  }
+
+  // Manejar selección de foto reverso
+  const handleReverso = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = e.target.files?.[0]
+    if (!archivo) return
+    setFotoReverso(archivo)
+    const reader = new FileReader()
+    reader.onload = (e) => setPreviewReverso(e.target?.result as string)
+    reader.readAsDataURL(archivo)
+  }
+
+  // Enviar solicitud de verificación
+  const handleEnviar = async () => {
+    setError('')
+
+    // Validaciones
+    if (!rut) { setError('Ingresa tu RUT'); return }
+    if (!rutValido) { setError('El RUT ingresado no es válido'); return }
+    if (!fotoAnverso) { setError('Sube la foto del anverso de tu carnet'); return }
+    if (!fotoReverso) { setError('Sube la foto del reverso de tu carnet'); return }
+
+    setEnviando(true)
+
+    try {
+      // Subir foto anverso al bucket carnets
+      const nombreAnverso = `${usuario.id}/anverso-${Date.now()}.jpg`
+      const { error: errorAnverso } = await supabase.storage
+        .from('carnets')
+        .upload(nombreAnverso, fotoAnverso, { upsert: true })
+
+      if (errorAnverso) { setError('Error subiendo anverso: ' + errorAnverso.message); setEnviando(false); return }
+
+      // Subir foto reverso al bucket carnets
+      const nombreReverso = `${usuario.id}/reverso-${Date.now()}.jpg`
+      const { error: errorReverso } = await supabase.storage
+        .from('carnets')
+        .upload(nombreReverso, fotoReverso, { upsert: true })
+
+      if (errorReverso) { setError('Error subiendo reverso: ' + errorReverso.message); setEnviando(false); return }
+
+      // Guardar RUT y paths de fotos en el perfil
+      // verificado se mantiene en false hasta que el admin lo apruebe
+      const { error: updateError } = await supabase
+        .from('perfiles')
+        .update({
+          rut: rut,
+          foto_carnet: JSON.stringify({ anverso: nombreAnverso, reverso: nombreReverso }),
+        })
+        .eq('id', usuario.id)
+
+      if (updateError) { setError('Error guardando datos: ' + updateError.message); setEnviando(false); return }
+
+      setExito(true)
+    } catch (err) {
+      setError('Ocurrió un error inesperado')
+    }
+
+    setEnviando(false)
+  }
+
+  if (cargando) {
+    return (
+      <main style={{minHeight: '100vh', background: '#f5f5f5'}}>
+        <Navbar />
+        <div style={{paddingTop: '104px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - 104px)'}}>
+          <p style={{color: '#888', fontSize: '14px'}}>Cargando...</p>
+        </div>
+      </main>
+    )
+  }
+
+  // Pantalla de éxito — solicitud enviada
+  if (exito) {
+    return (
+      <main style={{minHeight: '100vh', background: '#f5f5f5'}}>
+        <Navbar />
+        <div style={{paddingTop: '104px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 104px)'}}>
+          <div style={{background: '#fff', borderRadius: '20px', padding: '48px 40px', maxWidth: '480px', width: '100%', textAlign: 'center', border: '1px solid #eee', boxShadow: '0 8px 40px rgba(0,0,0,0.08)'}}>
+            <div style={{fontSize: '56px', marginBottom: '16px'}}>✅</div>
+            <h2 style={{fontSize: '1.6rem', fontWeight: '800', color: '#000', marginBottom: '8px'}}>
+              Solicitud enviada
+            </h2>
+            <p style={{fontSize: '14px', color: '#888', marginBottom: '8px', lineHeight: 1.7}}>
+              Revisaremos tu identidad en un plazo de <strong>24 horas hábiles</strong>. Te notificaremos cuando tu cuenta esté verificada.
+            </p>
+            <p style={{fontSize: '13px', color: '#aaa', marginBottom: '32px'}}>
+              Mientras tanto puedes seguir navegando y guardando favoritos.
+            </p>
+            <button
+              onClick={() => router.push('/perfil')}
+              style={{width: '100%', background: '#2563eb', color: '#fff', border: 'none', padding: '14px', borderRadius: '10px', fontSize: '14px', fontWeight: '700', cursor: 'pointer'}}
+            >
+              Volver a mi perfil
+            </button>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  return (
+    <main style={{minHeight: '100vh', background: '#f5f5f5'}}>
+
+      <style>{`
+        .input-rut:focus { border: 1.5px solid #2563eb !important; outline: none; }
+        .foto-slot { transition: border-color 0.2s, background 0.2s; }
+        .foto-slot:hover { border-color: #2563eb !important; background: #f0f6ff !important; }
+        .btn-enviar { transition: background 0.2s, transform 0.15s; }
+        .btn-enviar:hover { background: #1d4ed8 !important; transform: scale(1.02); }
+      `}</style>
+
+      <Navbar />
+
+      <div style={{paddingTop: '120px', padding: '120px 40px 60px', maxWidth: '600px', margin: '0 auto'}}>
+
+        {/* Encabezado */}
+        <div style={{marginBottom: '32px'}}>
+          <h1 style={{fontSize: '2rem', fontWeight: '800', color: '#000', marginBottom: '8px'}}>
+            Verificar identidad
+          </h1>
+          <p style={{fontSize: '14px', color: '#888', lineHeight: 1.7}}>
+            Para garantizar la seguridad de todos los usuarios, necesitamos verificar tu identidad con tu RUT y una foto de tu cédula de identidad.
+          </p>
+        </div>
+
+        {/* Banner informativo */}
+        <div style={{background: '#eff6ff', borderRadius: '12px', padding: '16px 20px', border: '1px solid #bfdbfe', marginBottom: '28px', display: 'flex', gap: '12px', alignItems: 'flex-start'}}>
+          <span style={{fontSize: '20px', flexShrink: 0}}>🔒</span>
+          <div>
+            <div style={{fontSize: '13px', fontWeight: '700', color: '#1d4ed8', marginBottom: '4px'}}>
+              Tus datos están protegidos
+            </div>
+            <div style={{fontSize: '12px', color: '#3b82f6', lineHeight: 1.6}}>
+              Tu cédula es revisada únicamente por el equipo de VeriCar y nunca es compartida con terceros. El proceso de verificación toma menos de 24 horas hábiles.
+            </div>
+          </div>
+        </div>
+
+        {/* Formulario */}
+        <div style={{background: '#fff', borderRadius: '16px', padding: '32px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '24px'}}>
+
+          {/* Campo RUT */}
+          <div>
+            <label style={{fontSize: '12px', fontWeight: '700', color: '#555', letterSpacing: '0.5px', display: 'block', marginBottom: '8px'}}>
+              RUT
+            </label>
+            <div style={{position: 'relative'}}>
+              <input
+                className="input-rut"
+                type="text"
+                placeholder="Ej: 12.345.678-9"
+                value={rut}
+                onChange={handleRutChange}
+                maxLength={12}
+                style={{
+                  width: '100%', padding: '12px 16px', fontSize: '16px',
+                  border: `1.5px solid ${rutValido === false ? '#fecaca' : rutValido === true ? '#bbf7d0' : '#e5e5e5'}`,
+                  borderRadius: '10px', background: '#fafafa', color: '#000',
+                  boxSizing: 'border-box', outline: 'none',
+                  fontWeight: '600', letterSpacing: '1px',
+                }}
+              />
+
+              {/* Indicador de validez */}
+              {rutValido !== null && (
+                <div style={{
+                  position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+                  fontSize: '18px',
+                }}>
+                  {rutValido ? '✅' : '❌'}
+                </div>
+              )}
+            </div>
+
+            {/* Mensaje de validación */}
+            {rutValido === false && (
+              <p style={{fontSize: '12px', color: '#dc2626', marginTop: '6px'}}>
+                RUT inválido — verifica que el dígito verificador sea correcto
+              </p>
+            )}
+            {rutValido === true && (
+              <p style={{fontSize: '12px', color: '#16a34a', marginTop: '6px'}}>
+                ✓ RUT válido
+              </p>
+            )}
+          </div>
+
+          {/* Separador */}
+          <div style={{height: '1px', background: '#f0f0f0'}} />
+
+          {/* Fotos del carnet */}
+          <div>
+            <label style={{fontSize: '12px', fontWeight: '700', color: '#555', letterSpacing: '0.5px', display: 'block', marginBottom: '16px'}}>
+              FOTO DE LA CÉDULA DE IDENTIDAD
+            </label>
+
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+
+              {/* Anverso */}
+              <div>
+                <p style={{fontSize: '12px', color: '#888', marginBottom: '8px', fontWeight: '600'}}>
+                  Parte delantera
+                </p>
+                <div
+                  className="foto-slot"
+                  onClick={() => inputAnversoRef.current?.click()}
+                  style={{
+                    height: '160px', borderRadius: '12px',
+                    border: '2px dashed #e5e5e5',
+                    background: previewAnverso ? 'transparent' : '#fafafa',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', overflow: 'hidden', position: 'relative',
+                  }}
+                >
+                  {previewAnverso ? (
+                    <img src={previewAnverso} alt="Anverso" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+                  ) : (
+                    <div style={{textAlign: 'center'}}>
+                      <div style={{fontSize: '28px', marginBottom: '8px'}}>📷</div>
+                      <div style={{fontSize: '12px', color: '#aaa'}}>Subir foto</div>
+                    </div>
+                  )}
+                </div>
+                <input ref={inputAnversoRef} type="file" accept="image/*" onChange={handleAnverso} style={{display: 'none'}} />
+              </div>
+
+              {/* Reverso */}
+              <div>
+                <p style={{fontSize: '12px', color: '#888', marginBottom: '8px', fontWeight: '600'}}>
+                  Parte trasera
+                </p>
+                <div
+                  className="foto-slot"
+                  onClick={() => inputReversoRef.current?.click()}
+                  style={{
+                    height: '160px', borderRadius: '12px',
+                    border: '2px dashed #e5e5e5',
+                    background: previewReverso ? 'transparent' : '#fafafa',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', overflow: 'hidden', position: 'relative',
+                  }}
+                >
+                  {previewReverso ? (
+                    <img src={previewReverso} alt="Reverso" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+                  ) : (
+                    <div style={{textAlign: 'center'}}>
+                      <div style={{fontSize: '28px', marginBottom: '8px'}}>📷</div>
+                      <div style={{fontSize: '12px', color: '#aaa'}}>Subir foto</div>
+                    </div>
+                  )}
+                </div>
+                <input ref={inputReversoRef} type="file" accept="image/*" onChange={handleReverso} style={{display: 'none'}} />
+              </div>
+            </div>
+
+            <p style={{fontSize: '12px', color: '#aaa', marginTop: '12px', lineHeight: 1.6}}>
+              Asegúrate que la foto sea legible y que el RUT sea claramente visible. Formatos aceptados: JPG, PNG.
+            </p>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div style={{background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', fontSize: '13px'}}>
+              {error}
+            </div>
+          )}
+
+          {/* Botón enviar */}
+          <button
+            className="btn-enviar"
+            onClick={handleEnviar}
+            disabled={enviando}
+            style={{
+              background: enviando ? '#93c5fd' : '#2563eb',
+              color: '#fff', border: 'none', padding: '16px',
+              borderRadius: '10px', fontSize: '15px', fontWeight: '700',
+              cursor: enviando ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {enviando ? 'Enviando solicitud...' : 'Enviar solicitud de verificación'}
+          </button>
+
+          {/* Nota legal */}
+          <p style={{fontSize: '12px', color: '#aaa', textAlign: 'center', lineHeight: 1.6}}>
+            Al enviar confirmas que los datos son tuyos y aceptas los{' '}
+            <a href="/terminos" style={{color: '#2563eb', textDecoration: 'none'}}>Términos y Condiciones</a>{' '}
+            de VeriCar.
+          </p>
+
+        </div>
+      </div>
+    </main>
+  )
+}
