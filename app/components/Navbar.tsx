@@ -171,7 +171,7 @@ export default function Navbar({ activa }: { activa?: string }) {
                   }}
                 >
                   + Publicar
-                  <span style={{fontSize: '10px', opacity: 0.7}}>▼</span>
+                  <span style={{ fontSize: '10px', opacity: 0.7 }}>▼</span>
                 </button>
 
                 {/* Menú publicar */}
@@ -183,7 +183,10 @@ export default function Navbar({ activa }: { activa?: string }) {
                     boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
                     overflow: 'hidden', zIndex: 200,
                   }}>
-                    <Link href="/publicar-auto" style={{textDecoration: 'none'}} onClick={() => setMenuPublicarAbierto(false)}>
+
+
+
+                    <Link href="/publicar-auto" style={{ textDecoration: 'none' }} onClick={() => setMenuPublicarAbierto(false)}>
                       <div className="publicar-item" style={{
                         padding: '12px 16px', fontSize: '13px',
                         color: '#333', fontWeight: '500',
@@ -192,14 +195,24 @@ export default function Navbar({ activa }: { activa?: string }) {
                         <span>🚗</span> Publicar auto
                       </div>
                     </Link>
-                    <div style={{height: '1px', background: '#f0f0f0'}} />
-                    <Link href="/publicar-repuesto" style={{textDecoration: 'none'}} onClick={() => setMenuPublicarAbierto(false)}>
+                    <div style={{ height: '1px', background: '#f0f0f0' }} />
+                    <Link href="/publicar-repuesto" style={{ textDecoration: 'none' }} onClick={() => setMenuPublicarAbierto(false)}>
                       <div className="publicar-item" style={{
                         padding: '12px 16px', fontSize: '13px',
                         color: '#333', fontWeight: '500',
                         display: 'flex', alignItems: 'center', gap: '10px',
                       }}>
                         <span>🔧</span> Publicar repuesto
+                      </div>
+                    </Link>
+                    <div style={{ height: '1px', background: '#f0f0f0' }} />
+                    <Link href="/registrar-taller" style={{ textDecoration: 'none' }} onClick={() => setMenuPublicarAbierto(false)}>
+                      <div className="publicar-item" style={{
+                        padding: '12px 16px', fontSize: '13px',
+                        color: '#333', fontWeight: '500',
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                      }}>
+                        <span>🏪</span> Registrar taller
                       </div>
                     </Link>
                   </div>
@@ -247,20 +260,20 @@ export default function Navbar({ activa }: { activa?: string }) {
                   }}>
 
                     {/* Info del usuario */}
-                    <div style={{padding: '16px 16px 12px', borderBottom: '1px solid #f0f0f0'}}>
-                      <div style={{fontSize: '14px', fontWeight: '700', color: '#000', marginBottom: '2px'}}>
+                    <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #f0f0f0' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '700', color: '#000', marginBottom: '2px' }}>
                         {perfil?.nombre || 'Mi cuenta'}
                       </div>
-                      <div style={{fontSize: '12px', color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                      <div style={{ fontSize: '12px', color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {usuario?.email}
                       </div>
                     </div>
 
                     {/* Opciones del menú */}
-                    <div style={{padding: '8px 0'}}>
+                    <div style={{ padding: '8px 0' }}>
 
                       {/* Mi perfil */}
-                      <Link href="/perfil" style={{textDecoration: 'none'}} onClick={() => setMenuAbierto(false)}>
+                      <Link href="/perfil" style={{ textDecoration: 'none' }} onClick={() => setMenuAbierto(false)}>
                         <div className="menu-item" style={{
                           padding: '10px 16px', fontSize: '13px',
                           color: '#333', fontWeight: '500',
@@ -271,7 +284,7 @@ export default function Navbar({ activa }: { activa?: string }) {
                       </Link>
 
                       {/* Mis publicaciones */}
-                      <Link href="/perfil" style={{textDecoration: 'none'}} onClick={() => setMenuAbierto(false)}>
+                      <Link href="/perfil" style={{ textDecoration: 'none' }} onClick={() => setMenuAbierto(false)}>
                         <div className="menu-item" style={{
                           padding: '10px 16px', fontSize: '13px',
                           color: '#333', fontWeight: '500',
@@ -282,7 +295,7 @@ export default function Navbar({ activa }: { activa?: string }) {
                       </Link>
 
                       {/* Mensajes con punto rojo */}
-                      <Link href="/chat" style={{textDecoration: 'none'}} onClick={() => setMenuAbierto(false)}>
+                      <Link href="/chat" style={{ textDecoration: 'none' }} onClick={() => setMenuAbierto(false)}>
                         <div className="menu-item" style={{
                           padding: '10px 16px', fontSize: '13px',
                           color: '#333', fontWeight: '500',
@@ -303,8 +316,8 @@ export default function Navbar({ activa }: { activa?: string }) {
                       {/* Panel admin — solo visible para administradores */}
                       {esAdmin && (
                         <>
-                          <div style={{height: '1px', background: '#f0f0f0', margin: '8px 0'}} />
-                          <Link href="/admin" style={{textDecoration: 'none'}} onClick={() => setMenuAbierto(false)}>
+                          <div style={{ height: '1px', background: '#f0f0f0', margin: '8px 0' }} />
+                          <Link href="/admin" style={{ textDecoration: 'none' }} onClick={() => setMenuAbierto(false)}>
                             <div className="menu-item-admin" style={{
                               padding: '10px 16px', fontSize: '13px',
                               color: '#2563eb', fontWeight: '700',
@@ -316,7 +329,7 @@ export default function Navbar({ activa }: { activa?: string }) {
                         </>
                       )}
 
-                      <div style={{height: '1px', background: '#f0f0f0', margin: '8px 0'}} />
+                      <div style={{ height: '1px', background: '#f0f0f0', margin: '8px 0' }} />
 
                       {/* Salir */}
                       <div
