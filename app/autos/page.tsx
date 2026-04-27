@@ -2,6 +2,7 @@
 // Lee autos reales desde Supabase con filtros funcionales
 // Recibe el parámetro q desde el buscador del inicio
 // Botón Contactar redirige al chat con el vendedor
+// Solo usuarios verificados pueden contactar
 
 'use client'
 
@@ -57,6 +58,7 @@ function AutosContent() {
   const [autos, setAutos] = useState<any[]>([])
   const [cargando, setCargando] = useState(true)
   const [usuario, setUsuario] = useState<any>(null)
+  const [perfilVerificado, setPerfilVerificado] = useState(false)
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false)
 
   const [busqueda, setBusqueda] = useState('')
@@ -69,8 +71,16 @@ function AutosContent() {
   const comunasDisponibles = region ? (COMUNAS[region] || []) : []
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setUsuario(session?.user ?? null)
+      if (session?.user) {
+        const { data: perfil } = await supabase
+          .from('perfiles')
+          .select('verificado')
+          .eq('id', session.user.id)
+          .single()
+        setPerfilVerificado(perfil?.verificado || false)
+      }
     })
     const q = searchParams.get('q')
     if (q) setBusqueda(q)
@@ -114,7 +124,6 @@ function AutosContent() {
 
   const separador = <div style={{height: '1px', background: '#f0f0f0', margin: '4px 0 18px'}} />
 
-  // Panel de filtros — reutilizado en desktop y drawer móvil
   const panelFiltros = (
     <div style={{padding: '24px 20px'}}>
       <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px'}}>
@@ -288,7 +297,6 @@ function AutosContent() {
         .btn-buscar-main { transition: background 0.2s, transform 0.15s; }
         .btn-buscar-main:hover { background: #1d4ed8 !important; }
 
-        /* Panel lateral visible en desktop, oculto en móvil */
         .filtros-desktop { display: block; }
         .filtros-btn-movil { display: none; }
         .autos-grid { grid-template-columns: repeat(3, 1fr) !important; }
@@ -328,14 +336,8 @@ function AutosContent() {
 
         {/* Drawer de filtros en móvil */}
         {filtrosAbiertos && (
-          <div
-            onClick={() => setFiltrosAbiertos(false)}
-            style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200}}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{position: 'absolute', left: 0, top: 0, bottom: 0, width: '80%', maxWidth: '320px', background: '#fff', overflowY: 'auto'}}
-            >
+          <div onClick={() => setFiltrosAbiertos(false)} style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200}}>
+            <div onClick={(e) => e.stopPropagation()} style={{position: 'absolute', left: 0, top: 0, bottom: 0, width: '80%', maxWidth: '320px', background: '#fff', overflowY: 'auto'}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 20px 0'}}>
                 <h3 style={{fontSize: '16px', fontWeight: '800', color: '#000'}}>Filtros</h3>
                 <button onClick={() => setFiltrosAbiertos(false)} style={{background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888'}}>✕</button>
@@ -348,11 +350,7 @@ function AutosContent() {
         <div style={{display: 'flex'}}>
 
           {/* Panel lateral desktop */}
-          <div className="filtros-desktop" style={{
-            width: '260px', minWidth: '260px',
-            background: '#fff', borderRight: '1px solid #e5e5e5',
-            minHeight: 'calc(100vh - 104px)',
-          }}>
+          <div className="filtros-desktop" style={{width: '260px', minWidth: '260px', background: '#fff', borderRight: '1px solid #e5e5e5', minHeight: 'calc(100vh - 104px)'}}>
             {panelFiltros}
           </div>
 
@@ -364,18 +362,7 @@ function AutosContent() {
                 <span style={{fontWeight: '700', color: '#000'}}>{autos.length} autos</span> disponibles
               </p>
               <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
-                {/* Botón filtros en móvil */}
-                <button
-                  className="filtros-btn-movil"
-                  onClick={() => setFiltrosAbiertos(true)}
-                  style={{
-                    display: 'none',
-                    background: '#fff', border: '1.5px solid #e5e5e5',
-                    color: '#333', padding: '8px 16px', borderRadius: '8px',
-                    fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-                    alignItems: 'center', gap: '6px',
-                  }}
-                >
+                <button className="filtros-btn-movil" onClick={() => setFiltrosAbiertos(true)} style={{display: 'none', background: '#fff', border: '1.5px solid #e5e5e5', color: '#333', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', alignItems: 'center', gap: '6px'}}>
                   ⚙️ Filtros
                 </button>
                 <select style={{padding: '8px 16px', fontSize: '13px', border: '1.5px solid #e5e5e5', borderRadius: '8px', background: '#fff', color: '#333', cursor: 'pointer', outline: 'none'}}>
@@ -432,10 +419,12 @@ function AutosContent() {
                             className="btn-contactar"
                             onClick={(e) => {
                               e.preventDefault()
-                              if (usuario) {
-                                router.push(`/chat?auto_id=${auto.id}&vendedor_id=${auto.vendedor_id}`)
-                              } else {
+                              if (!usuario) {
                                 router.push('/login')
+                              } else if (!perfilVerificado) {
+                                router.push('/verificar?origen=autos')
+                              } else {
+                                router.push(`/chat?auto_id=${auto.id}&vendedor_id=${auto.vendedor_id}`)
                               }
                             }}
                             style={{background: '#2563eb', color: '#fff', border: 'none', padding: '7px 16px', borderRadius: '7px', fontSize: '12px', fontWeight: '700', cursor: 'pointer'}}

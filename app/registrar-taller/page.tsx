@@ -66,13 +66,23 @@ export default function RegistrarTaller() {
   const [fotoPreview, setFotoPreview] = useState<string>('')
   const inputFotoRef = useRef<HTMLInputElement>(null)
 
-  // Verificar sesión — redirigir al login si no hay sesión
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) router.push('/login')
-      else setUsuario(session.user)
-    })
-  }, [])
+  supabase.auth.getSession().then(async ({ data: { session } }) => {
+    if (!session) { router.push('/login'); return }
+    setUsuario(session.user)
+
+    // Verificar que el usuario esté verificado
+    const { data: perfil } = await supabase
+      .from('perfiles')
+      .select('verificado')
+      .eq('id', session.user.id)
+      .single()
+
+    if (!perfil?.verificado) {
+      router.push('/verificar?origen=registrar-taller')
+    }
+  })
+}, [])
 
   // Estado del formulario
   const [form, setForm] = useState({
