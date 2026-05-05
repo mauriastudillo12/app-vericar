@@ -216,6 +216,7 @@ export default function DetalleTaller() {
           </div>
         </div>
       </div>
+      
     </main>
   )
 }
