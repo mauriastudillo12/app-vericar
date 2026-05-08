@@ -1,5 +1,7 @@
+// app/registro/page.tsx
 // Página de registro de VeriCar
 // Conectada a Supabase — guarda usuarios reales en la base de datos
+// Solo registro por correo + contraseña
 
 'use client'
 
@@ -11,11 +13,9 @@ import { supabase } from '../lib/supabase'
 export default function Registro() {
 
   const router = useRouter()
-  const [metodo, setMetodo] = useState('correo')
 
   // Estados para los campos del formulario
   const [email, setEmail] = useState('')
-  const [telefono, setTelefono] = useState('')
   const [password, setPassword] = useState('')
   const [nombre, setNombre] = useState('')
 
@@ -28,7 +28,7 @@ export default function Registro() {
 
     // Validación básica
     if (!nombre) { setError('Por favor ingresa tu nombre'); return }
-    if (metodo === 'correo' && !email) { setError('Por favor ingresa tu correo'); return }
+    if (!email) { setError('Por favor ingresa tu correo'); return }
     if (!password || password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres'); return }
 
     setCargando(true)
@@ -36,9 +36,8 @@ export default function Registro() {
 
     try {
       // Paso 1: crear el usuario en Supabase Auth
-      // Supabase guarda el email y la contraseña de forma segura
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: metodo === 'correo' ? email : `${telefono}@vericar.cl`,
+        email,
         password,
       })
 
@@ -50,15 +49,14 @@ export default function Registro() {
 
       // Paso 2: guardar datos adicionales en la tabla perfiles
       // Supabase Auth solo guarda email y contraseña
-      // El nombre, teléfono y otros datos van en nuestra tabla perfiles
+      // El nombre y otros datos van en nuestra tabla perfiles
       if (authData.user) {
         const { error: perfilError } = await supabase
           .from('perfiles')
           .insert({
             id: authData.user.id,
             nombre,
-            email: metodo === 'correo' ? email : '',
-            telefono: metodo === 'telefono' ? telefono : '',
+            email,
             verificado: false,
           })
 
@@ -84,98 +82,35 @@ export default function Registro() {
       <style>{`
         .input-field { transition: border 0.2s; }
         .input-field:focus { border: 1.5px solid #2563eb !important; outline: none; }
-        .btn-metodo { transition: all 0.2s ease; cursor: pointer; }
         .btn-submit { transition: background 0.2s ease, transform 0.15s ease; }
         .btn-submit:hover { background: #1d4ed8 !important; transform: scale(1.02); }
+        .link-hover:hover { color: #1d4ed8 !important; }
       `}</style>
 
-      {/* Imagen de fondo difuminada */}
+      {/* Imagen de fondo difuminada igual que login */}
       <img
         src="/hero-car.jpg"
         alt=""
-        style={{
-          position: 'fixed',
-          top: 0, left: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          filter: 'blur(12px)',
-          transform: 'scale(1.1)',
-          zIndex: 0,
-        }}
+        style={{position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(12px)', transform: 'scale(1.1)', zIndex: 0}}
       />
 
       {/* Overlay */}
-      <div style={{
-        position: 'fixed',
-        top: 0, left: 0,
-        width: '100%',
-        height: '100%',
-        background: 'rgba(245, 245, 245, 0.55)',
-        zIndex: 1,
-      }} />
+      <div style={{position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(245,245,245,0.55)', zIndex: 1}} />
 
       <Navbar />
 
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        padding: '80px 20px 40px',
-        position: 'relative',
-        zIndex: 10,
-      }}>
-
-        <div style={{
-          background: '#fff',
-          borderRadius: '20px',
-          padding: '48px 40px',
-          width: '100%',
-          maxWidth: '480px',
-          border: '1px solid #eee',
-          boxShadow: '0 8px 40px rgba(0,0,0,0.08)',
-        }}>
+      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '80px 20px 40px', position: 'relative', zIndex: 10}}>
+        <div style={{background: '#fff', borderRadius: '20px', padding: '48px 40px', width: '100%', maxWidth: '480px', border: '1px solid #eee', boxShadow: '0 8px 40px rgba(0,0,0,0.08)'}}>
 
           <div style={{textAlign: 'center', marginBottom: '32px'}}>
-            <div style={{fontSize: '22px', fontWeight: '900', letterSpacing: '4px', color: '#000', marginBottom: '8px'}}>
-              VERICAR
-            </div>
-            <h1 style={{fontSize: '1.6rem', fontWeight: '800', color: '#000', marginBottom: '6px'}}>
-              Crea tu cuenta
-            </h1>
-            <p style={{fontSize: '14px', color: '#888'}}>
-              Sin verificación de identidad por ahora
-            </p>
-          </div>
-
-          {/* Selector de método */}
-          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '24px'}}>
-            <div className="btn-metodo" onClick={() => setMetodo('correo')} style={{
-              background: metodo === 'correo' ? '#000' : '#f5f5f5',
-              color: metodo === 'correo' ? '#fff' : '#666',
-              border: metodo === 'correo' ? '1.5px solid #000' : '1.5px solid #e5e5e5',
-              borderRadius: '10px', padding: '14px', textAlign: 'center',
-            }}>
-              <div style={{fontSize: '20px', marginBottom: '4px'}}>✉️</div>
-              <div style={{fontSize: '13px', fontWeight: '600'}}>Correo</div>
-              <div style={{fontSize: '11px', opacity: 0.7}}>+ contraseña</div>
-            </div>
-            <div className="btn-metodo" onClick={() => setMetodo('telefono')} style={{
-              background: metodo === 'telefono' ? '#000' : '#f5f5f5',
-              color: metodo === 'telefono' ? '#fff' : '#666',
-              border: metodo === 'telefono' ? '1.5px solid #000' : '1.5px solid #e5e5e5',
-              borderRadius: '10px', padding: '14px', textAlign: 'center',
-            }}>
-              <div style={{fontSize: '20px', marginBottom: '4px'}}>📱</div>
-              <div style={{fontSize: '13px', fontWeight: '600'}}>Teléfono</div>
-              <div style={{fontSize: '11px', opacity: 0.7}}>+ SMS</div>
-            </div>
+            <div style={{fontSize: '22px', fontWeight: '900', letterSpacing: '4px', color: '#000', marginBottom: '8px'}}>VERICAR</div>
+            <h1 style={{fontSize: '1.6rem', fontWeight: '800', color: '#000', marginBottom: '6px'}}>Crea tu cuenta</h1>
+            <p style={{fontSize: '14px', color: '#888'}}>Únete a VeriCar gratis</p>
           </div>
 
           <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
 
-            {/* Nombre */}
+            {/* Nombre completo */}
             <div>
               <label style={{fontSize: '12px', fontWeight: '600', color: '#555', letterSpacing: '0.5px', display: 'block', marginBottom: '6px'}}>
                 NOMBRE COMPLETO
@@ -190,36 +125,20 @@ export default function Registro() {
               />
             </div>
 
-            {/* Correo o teléfono */}
-            {metodo === 'correo' ? (
-              <div>
-                <label style={{fontSize: '12px', fontWeight: '600', color: '#555', letterSpacing: '0.5px', display: 'block', marginBottom: '6px'}}>
-                  CORREO ELECTRÓNICO
-                </label>
-                <input
-                  type="email"
-                  placeholder="tu@correo.com"
-                  className="input-field"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  style={{width: '100%', padding: '14px 16px', fontSize: '15px', border: '1.5px solid #e5e5e5', borderRadius: '10px', background: '#fafafa', color: '#000', boxSizing: 'border-box'}}
-                />
-              </div>
-            ) : (
-              <div>
-                <label style={{fontSize: '12px', fontWeight: '600', color: '#555', letterSpacing: '0.5px', display: 'block', marginBottom: '6px'}}>
-                  NÚMERO DE TELÉFONO
-                </label>
-                <input
-                  type="tel"
-                  placeholder="+56 9 XXXX XXXX"
-                  className="input-field"
-                  value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
-                  style={{width: '100%', padding: '14px 16px', fontSize: '15px', border: '1.5px solid #e5e5e5', borderRadius: '10px', background: '#fafafa', color: '#000', boxSizing: 'border-box'}}
-                />
-              </div>
-            )}
+            {/* Correo electrónico */}
+            <div>
+              <label style={{fontSize: '12px', fontWeight: '600', color: '#555', letterSpacing: '0.5px', display: 'block', marginBottom: '6px'}}>
+                CORREO ELECTRÓNICO
+              </label>
+              <input
+                type="email"
+                placeholder="tu@correo.com"
+                className="input-field"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{width: '100%', padding: '14px 16px', fontSize: '15px', border: '1.5px solid #e5e5e5', borderRadius: '10px', background: '#fafafa', color: '#000', boxSizing: 'border-box'}}
+              />
+            </div>
 
             {/* Contraseña */}
             <div>
@@ -232,40 +151,24 @@ export default function Registro() {
                 className="input-field"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleRegistro()}
                 style={{width: '100%', padding: '14px 16px', fontSize: '15px', border: '1.5px solid #e5e5e5', borderRadius: '10px', background: '#fafafa', color: '#000', boxSizing: 'border-box'}}
               />
             </div>
 
             {/* Mensaje de error */}
             {error && (
-              <div style={{
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-                color: '#dc2626',
-                padding: '12px 16px',
-                borderRadius: '8px',
-                fontSize: '13px',
-              }}>
+              <div style={{background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', fontSize: '13px'}}>
                 {error}
               </div>
             )}
 
-            {/* Botón */}
+            {/* Botón crear cuenta */}
             <button
               className="btn-submit"
               onClick={handleRegistro}
               disabled={cargando}
-              style={{
-                background: cargando ? '#93c5fd' : '#2563eb',
-                color: '#fff',
-                border: 'none',
-                padding: '16px',
-                borderRadius: '10px',
-                fontSize: '15px',
-                fontWeight: '700',
-                cursor: cargando ? 'not-allowed' : 'pointer',
-                marginTop: '8px',
-              }}
+              style={{background: cargando ? '#93c5fd' : '#2563eb', color: '#fff', border: 'none', padding: '16px', borderRadius: '10px', fontSize: '15px', fontWeight: '700', cursor: cargando ? 'not-allowed' : 'pointer', marginTop: '8px'}}
             >
               {cargando ? 'Creando cuenta...' : 'Crear cuenta'}
             </button>
@@ -276,9 +179,10 @@ export default function Registro() {
               <div style={{flex: 1, height: '1px', background: '#eee'}} />
             </div>
 
+            {/* Link a login */}
             <p style={{textAlign: 'center', fontSize: '14px', color: '#666'}}>
               ¿Ya tienes cuenta?{' '}
-              <a href="/login" style={{color: '#2563eb', fontWeight: '600', textDecoration: 'none'}}>
+              <a href="/login" className="link-hover" style={{color: '#2563eb', fontWeight: '600', textDecoration: 'none'}}>
                 Ingresa aquí
               </a>
             </p>

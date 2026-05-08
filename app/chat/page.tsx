@@ -35,7 +35,8 @@ function ChatContent() {
   const crearOBuscarConversacion = async (compradorId: string, autoId: string, vendedorId: string) => {
     const { data: existente } = await supabase
       .from('conversaciones').select('*')
-      .eq('auto_id', autoId).eq('comprador_id', compradorId).eq('vendedor_id', vendedorId).single()
+      .eq('auto_id', autoId).eq('comprador_id', compradorId).eq('vendedor_id', vendedorId)
+      .maybeSingle()
     if (existente) return existente
     const { data: nueva } = await supabase
       .from('conversaciones').insert({ auto_id: autoId, comprador_id: compradorId, vendedor_id: vendedorId }).select().single()
@@ -50,7 +51,15 @@ function ChatContent() {
 
     const lista = data || []
     const conversacionesCompletas = await Promise.all(lista.map(async (conv: any) => {
-      const { data: autoData } = await supabase.from('autos').select('nombre, fotos').eq('id', conv.auto_id).single()
+      let autoData = null
+      if (conv.auto_id) {
+        const { data } = await supabase
+          .from('autos')
+          .select('nombre, fotos')
+          .eq('id', conv.auto_id)
+          .single()
+        autoData = data
+      }
       const otroId = conv.comprador_id === userId ? conv.vendedor_id : conv.comprador_id
       const { data: otroData } = await supabase.from('perfiles').select('nombre, email').eq('id', otroId).single()
       return { ...conv, auto: autoData, otroUsuarioData: otroData }
@@ -59,7 +68,7 @@ function ChatContent() {
     const vistas = new Set()
     return conversacionesCompletas.filter((conv: any) => {
       const otroId = conv.comprador_id === userId ? conv.vendedor_id : conv.comprador_id
-      const clave = `${conv.auto_id}-${otroId}`
+      const clave = `${conv.auto_id || 'taller'}-${otroId}`
       if (vistas.has(clave)) return false
       vistas.add(clave)
       return true
@@ -96,16 +105,52 @@ function ChatContent() {
       usuarioIdRef.current = session.user.id
 
       let convId = null
-      if (autoId && vendedorId && vendedorId !== session.user.id) {
-        const conv = await crearOBuscarConversacion(session.user.id, autoId, vendedorId)
-        convId = conv?.id
+
+      if (vendedorId && vendedorId !== session.user.id) {
+        if (autoId) {
+          // Viene desde detalle de auto
+          const conv = await crearOBuscarConversacion(session.user.id, autoId, vendedorId)
+          convId = conv?.id
+        } else {
+          // Viene desde taller — buscar o crear conversación sin auto_id
+          const { data: existente } = await supabase
+            .from('conversaciones').select('*')
+            .eq('comprador_id', session.user.id)
+            .eq('vendedor_id', vendedorId)
+            .is('auto_id', null)
+            .maybeSingle() // ← fix: no lanza error si no existe
+
+          if (existente) {
+            convId = existente.id
+          } else {
+            const { data: nueva, error: errNueva } = await supabase
+              .from('conversaciones')
+              .insert({ auto_id: null, comprador_id: session.user.id, vendedor_id: vendedorId })
+              .select().single()
+            if (errNueva) {
+              console.error('Error creando conversación con taller:', errNueva)
+            }
+            convId = nueva?.id
+          }
+        }
       }
 
       const lista = await cargarConversaciones(session.user.id)
       setConversaciones(lista)
 
-      if (lista.length > 0) {
-        const aAbrir = convId ? lista.find((c: any) => c.id === convId) || lista[0] : lista[0]
+      // Buscar la conversación en la lista
+      let aAbrir = convId ? lista.find((c: any) => c.id === convId) : null
+
+      // Si no la encontró (recién creada), recargar lista
+      if (convId && !aAbrir) {
+        const listaActualizada = await cargarConversaciones(session.user.id)
+        setConversaciones(listaActualizada)
+        aAbrir = listaActualizada.find((c: any) => c.id === convId) || listaActualizada[0]
+      } else if (!aAbrir) {
+        aAbrir = lista[0]
+      }
+
+      if (aAbrir) {
         await abrirConversacion(aAbrir, session.user.id)
       }
 
@@ -113,7 +158,14 @@ function ChatContent() {
     }
 
     iniciar()
-    return () => { if (pollingRef.current) clearInterval(pollingRef.current) }
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+      convActivaIdRef.current = null
+    }
   }, [])
 
   const enviarMensaje = async () => {
@@ -152,12 +204,10 @@ function ChatContent() {
         .btn-enviar:hover { background: #1d4ed8 !important; }
         .input-mensaje:focus { outline: none; border-color: #2563eb !important; }
 
-        /* En desktop muestra ambos paneles */
         .chat-lista { display: flex !important; }
         .chat-mensajes { display: flex !important; }
 
         @media (max-width: 768px) {
-          /* En móvil muestra solo uno según vistaMovil */
           .chat-lista-oculta { display: none !important; }
           .chat-mensajes-ocultos { display: none !important; }
           .chat-lista { width: 100% !important; min-width: unset !important; border-right: none !important; }
@@ -200,7 +250,7 @@ function ChatContent() {
                       </div>
                       <div style={{flex: 1, minWidth: 0}}>
                         <div style={{fontSize: '14px', fontWeight: '600', color: '#000', marginBottom: '2px'}}>{otroUsuario(conv)}</div>
-                        <div style={{fontSize: '12px', color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{conv.auto?.nombre || 'Auto'}</div>
+                        <div style={{fontSize: '12px', color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{conv.auto?.nombre || 'Consulta directa'}</div>
                       </div>
                     </div>
                   </div>
@@ -215,16 +265,10 @@ function ChatContent() {
               className={`chat-mensajes ${vistaMovil === 'lista' ? 'chat-mensajes-ocultos' : ''}`}
               style={{flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden'}}
             >
-              {/* Header con botón volver en móvil */}
               <div style={{padding: '16px 24px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '12px'}}>
-                {/* Botón volver — solo visible en móvil */}
                 <button
                   onClick={() => setVistaMovil('lista')}
-                  style={{
-                    background: 'none', border: 'none', fontSize: '20px',
-                    cursor: 'pointer', color: '#888', padding: '0',
-                    display: 'none',
-                  }}
+                  style={{background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888', padding: '0', display: 'none'}}
                   className="btn-volver-movil"
                 >
                   ←
@@ -234,11 +278,10 @@ function ChatContent() {
                 </div>
                 <div>
                   <div style={{fontSize: '15px', fontWeight: '700', color: '#000'}}>{otroUsuario(conversacionActiva)}</div>
-                  <div style={{fontSize: '12px', color: '#888'}}>{conversacionActiva.auto?.nombre}</div>
+                  <div style={{fontSize: '12px', color: '#888'}}>{conversacionActiva.auto?.nombre || 'Consulta directa'}</div>
                 </div>
               </div>
 
-              {/* Mensajes */}
               <div style={{flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '10px', background: '#fafafa'}}>
                 {mensajes.length === 0 ? (
                   <div style={{textAlign: 'center', padding: '40px', color: '#aaa', fontSize: '14px'}}>Inicia la conversación</div>
@@ -269,7 +312,6 @@ function ChatContent() {
                 <div ref={mensajesEndRef} />
               </div>
 
-              {/* Input */}
               <div style={{padding: '16px 24px', borderTop: '1px solid #f0f0f0', display: 'flex', gap: '12px', alignItems: 'center', background: '#fff'}}>
                 <input
                   type="text"
@@ -300,7 +342,6 @@ function ChatContent() {
         </div>
       </div>
 
-      {/* Estilos extra para el botón volver en móvil */}
       <style>{`
         @media (max-width: 768px) {
           .btn-volver-movil { display: block !important; }

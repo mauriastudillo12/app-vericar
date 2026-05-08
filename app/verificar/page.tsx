@@ -107,6 +107,7 @@ function VerificarContent() {
   const [enviando, setEnviando] = useState(false)
   const [exito, setExito] = useState(false)
   const [error, setError] = useState('')
+  const [iniciado, setIniciado] = useState(false)
 
   const [rut, setRut] = useState('')
   const [rutValido, setRutValido] = useState<boolean | null>(null)
@@ -124,8 +125,10 @@ function VerificarContent() {
   const inputAnversoRef = useRef<HTMLInputElement>(null)
   const inputReversoRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    const iniciar = async () => {
+ useEffect(() => {
+  if (iniciado) return
+  setIniciado(true)
+  const iniciar = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/login'); return }
       setUsuario(session.user)
@@ -133,9 +136,13 @@ function VerificarContent() {
         .from('perfiles').select('*').eq('id', session.user.id).single()
       setPerfil(perfilData)
       if (perfilData?.verificado) {
-        router.push(origen ? `/${origen}` : '/perfil')
-        return
-      }
+  // Evitar loop — solo redirigir si no estamos ya en el destino
+  const destino = origen ? `/${origen}` : '/perfil'
+  if (typeof window !== 'undefined' && window.location.pathname !== destino) {
+    router.push(destino)
+  }
+  return
+}
       if (perfilData?.rut) setRut(perfilData.rut)
       setCargando(false)
     }
