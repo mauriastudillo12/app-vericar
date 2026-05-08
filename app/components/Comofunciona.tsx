@@ -1,10 +1,26 @@
+// app/components/ComoFunciona.tsx
 // Sección "Cómo funciona VeriCar"
 // Explica el proceso en 4 pasos simples incluyendo talleres
 // Va entre Features y los autos destacados
+// Botones siempre visibles — si no está logueado mandan al login
+
+'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
 
 export default function ComoFunciona() {
+
+  // Detectar si hay sesión activa para redirigir correctamente los botones
+  const [logueado, setLogueado] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setLogueado(!!session)
+    })
+  }, [])
+
   return (
     <section className="section-padding" style={{background: '#fff', padding: '80px 40px'}}>
 
@@ -32,47 +48,38 @@ export default function ComoFunciona() {
           </p>
         </div>
 
-        {/* Grid de 4 pasos — responsive a 1 columna en móvil */}
+        {/* Grid de 4 pasos */}
         <div className="grid-responsive" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '56px'}}>
           {[
             {
-              numero: '01',
-              icono: '🔐',
+              numero: '01', icono: '🔐',
               titulo: 'Regístrate y verifica',
               descripcion: 'Crea tu cuenta con RUT y cédula de identidad. Tu identidad queda verificada y visible para todos los usuarios.',
-              color: '#eff6ff',
-              colorBorde: '#bfdbfe',
+              color: '#eff6ff', colorBorde: '#bfdbfe',
             },
             {
-              numero: '02',
-              icono: '🚗',
+              numero: '02', icono: '🚗',
               titulo: 'Compra, vende o publica',
               descripcion: 'Publica tu auto o repuesto con fotos reales, o navega el feed con filtros por región, marca, precio y combustible.',
-              color: '#f0fdf4',
-              colorBorde: '#bbf7d0',
+              color: '#f0fdf4', colorBorde: '#bbf7d0',
             },
             {
-              numero: '03',
-              icono: '🏪',
+              numero: '03', icono: '🏪',
               titulo: 'Encuentra talleres verificados',
               descripcion: 'Busca talleres mecánicos de confianza cerca de ti. Filtra por servicio, región y comuna. Contacta directo sin intermediarios.',
-              color: '#fefce8',
-              colorBorde: '#fde68a',
+              color: '#fefce8', colorBorde: '#fde68a',
             },
             {
-              numero: '04',
-              icono: '💬',
+              numero: '04', icono: '💬',
               titulo: 'Contacta con seguridad',
               descripcion: 'Chatea directamente con vendedores y talleres verificados. La patente se revela solo cuando ambas partes están listas.',
-              color: '#fdf4ff',
-              colorBorde: '#e9d5ff',
+              color: '#fdf4ff', colorBorde: '#e9d5ff',
             },
           ].map((paso) => (
             <div key={paso.numero} className="paso-card" style={{
               background: '#fff', borderRadius: '20px',
               padding: '32px 24px', border: '1px solid #eee',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-              textAlign: 'center',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.06)', textAlign: 'center',
             }}>
               <div style={{fontSize: '11px', fontWeight: '800', color: '#2563eb', letterSpacing: '2px', marginBottom: '20px'}}>
                 PASO {paso.numero}
@@ -95,7 +102,7 @@ export default function ComoFunciona() {
           ))}
         </div>
 
-        {/* Banners inferiores — responsive a 1 columna en móvil */}
+        {/* Banners inferiores */}
         <div className="grid-responsive-2" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
 
           {/* Banner compra y venta */}
@@ -113,13 +120,14 @@ export default function ComoFunciona() {
               </p>
             </div>
             <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
-              <Link href="/registro" style={{textDecoration: 'none'}}>
+              {/* Si no está logueado manda al login, si está logueado manda a publicar */}
+              <Link href={logueado ? '/publicar-auto' : '/login'} style={{textDecoration: 'none'}}>
                 <button className="btn-banner" style={{
                   background: '#2563eb', color: '#fff', border: 'none',
                   padding: '12px 24px', borderRadius: '10px',
                   fontSize: '13px', fontWeight: '700', cursor: 'pointer',
                 }}>
-                  Registrarse gratis
+                  Publicar auto
                 </button>
               </Link>
               <Link href="/autos" style={{textDecoration: 'none'}}>
@@ -159,7 +167,8 @@ export default function ComoFunciona() {
                   Ver talleres
                 </button>
               </Link>
-              <Link href="/registrar-taller" style={{textDecoration: 'none'}}>
+              {/* Si no está logueado manda al login, si está logueado manda a registrar taller */}
+              <Link href={logueado ? '/registrar-taller' : '/login'} style={{textDecoration: 'none'}}>
                 <button className="btn-banner-outline" style={{
                   background: 'transparent', color: '#fff',
                   border: '1.5px solid rgba(255,255,255,0.4)',
