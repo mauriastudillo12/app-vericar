@@ -1,13 +1,13 @@
 // Página de feed de autos
 // Lee autos reales desde Supabase con filtros funcionales
 // Recibe el parámetro q desde el buscador del inicio
-// Botón Contactar redirige al chat con el vendedor
+// El contacto con el vendedor se hace desde el detalle del auto
 // Solo usuarios verificados pueden contactar
 
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../lib/supabase'
 import Navbar from '../components/Navbar'
@@ -53,12 +53,9 @@ const COMUNAS: Record<string, string[]> = {
 
 function AutosContent() {
   const searchParams = useSearchParams()
-  const router = useRouter()
 
   const [autos, setAutos] = useState<any[]>([])
   const [cargando, setCargando] = useState(true)
-  const [usuario, setUsuario] = useState<any>(null)
-  const [perfilVerificado, setPerfilVerificado] = useState(false)
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false)
 
   const [busqueda, setBusqueda] = useState('')
@@ -71,17 +68,7 @@ function AutosContent() {
   const comunasDisponibles = region ? (COMUNAS[region] || []) : []
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setUsuario(session?.user ?? null)
-      if (session?.user) {
-        const { data: perfil } = await supabase
-          .from('perfiles')
-          .select('verificado')
-          .eq('id', session.user.id)
-          .single()
-        setPerfilVerificado(perfil?.verificado || false)
-      }
-    })
+    supabase.auth.getSession()
     const q = searchParams.get('q')
     if (q) setBusqueda(q)
     cargarAutos(q || '')
@@ -291,8 +278,6 @@ function AutosContent() {
       <style>{`
         .car-card { transition: transform 0.25s ease, box-shadow 0.25s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
         .car-card:hover { transform: translateY(-6px); box-shadow: 0 16px 40px rgba(37,99,235,0.12) !important; }
-        .btn-contactar { transition: background 0.2s ease, transform 0.15s ease; }
-        .btn-contactar:hover { background: #1d4ed8 !important; transform: scale(1.05); }
         .input-buscar:focus { border: 1.5px solid #2563eb !important; outline: none; }
         .btn-buscar-main { transition: background 0.2s, transform 0.15s; }
         .btn-buscar-main:hover { background: #1d4ed8 !important; }
@@ -387,6 +372,7 @@ function AutosContent() {
                   <Link key={auto.id} href={`/autos/${auto.id}`} style={{textDecoration: 'none'}}>
                     <div className="car-card" style={{background: '#fff', borderRadius: '16px', overflow: 'hidden', border: '1px solid #eee', cursor: 'pointer'}}>
 
+                      {/* Imagen */}
                       <div style={{width: '100%', height: '180px', background: 'linear-gradient(135deg, #e8e8e8 0%, #d5d5d5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden'}}>
                         {auto.negociable && (
                           <div style={{position: 'absolute', top: '10px', right: '10px', background: '#f0fdf4', color: '#16a34a', fontSize: '10px', fontWeight: '700', padding: '3px 8px', borderRadius: '4px', border: '1px solid #bbf7d0', zIndex: 1}}>
@@ -402,6 +388,7 @@ function AutosContent() {
                         })()}
                       </div>
 
+                      {/* Datos */}
                       <div style={{padding: '16px 18px'}}>
                         <div style={{fontSize: '15px', fontWeight: '700', color: '#000', marginBottom: '3px'}}>{auto.nombre}</div>
                         <div style={{fontSize: '12px', color: '#888', marginBottom: '12px'}}>
@@ -410,27 +397,10 @@ function AutosContent() {
                         <div style={{fontSize: '20px', fontWeight: '800', color: '#000', marginBottom: '14px'}}>
                           {formatPrecio(auto.precio)}
                         </div>
-                        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '12px', borderTop: '1px solid #f0f0f0'}}>
-                          <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
-                            <div style={{width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e'}} />
-                            <span style={{fontSize: '12px', color: '#888'}}>{getNombreRegion(auto.region)}</span>
-                          </div>
-                          <button
-                            className="btn-contactar"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              if (!usuario) {
-                                router.push('/login')
-                              } else if (!perfilVerificado) {
-                                router.push('/verificar?origen=autos')
-                              } else {
-                                router.push(`/chat?auto_id=${auto.id}&vendedor_id=${auto.vendedor_id}`)
-                              }
-                            }}
-                            style={{background: '#2563eb', color: '#fff', border: 'none', padding: '7px 16px', borderRadius: '7px', fontSize: '12px', fontWeight: '700', cursor: 'pointer'}}
-                          >
-                            Contactar
-                          </button>
+                        {/* Solo región — el contacto está en el detalle */}
+                        <div style={{display: 'flex', alignItems: 'center', gap: '5px', paddingTop: '12px', borderTop: '1px solid #f0f0f0'}}>
+                          <div style={{width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e'}} />
+                          <span style={{fontSize: '12px', color: '#888'}}>{getNombreRegion(auto.region)}</span>
                         </div>
                       </div>
                     </div>

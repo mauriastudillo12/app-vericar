@@ -2,6 +2,8 @@
 // Muestra datos del usuario logueado y sus publicaciones de autos y repuestos
 // Permite editar el nombre y eliminar publicaciones
 // Tab de favoritos con autos guardados
+// Sección de contacto WhatsApp con horario de atención configurable
+// La card de WhatsApp tiene modo vista y modo edición
 
 'use client'
 
@@ -22,10 +24,19 @@ export default function Perfil() {
   const [favoritos, setFavoritos] = useState<any[]>([])
   const [cargando, setCargando] = useState(true)
   const [tabActiva, setTabActiva] = useState<'autos' | 'repuestos' | 'favoritos'>('autos')
+
+  // Estados para editar nombre
   const [editando, setEditando] = useState(false)
   const [nuevoNombre, setNuevoNombre] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [mensajeExito, setMensajeExito] = useState('')
+
+  // Estados para WhatsApp y horario de contacto
+  const [whatsapp, setWhatsapp] = useState('')
+  const [horarioInicio, setHorarioInicio] = useState(9)
+  const [horarioFin, setHorarioFin] = useState(20)
+  const [guardandoContacto, setGuardandoContacto] = useState(false)
+  const [editandoContacto, setEditandoContacto] = useState(false)
 
   useEffect(() => {
     const cargarPerfil = async () => {
@@ -37,6 +48,11 @@ export default function Perfil() {
         .from('perfiles').select('*').eq('id', session.user.id).single()
       setPerfil(perfilData)
       setNuevoNombre(perfilData?.nombre || '')
+
+      // Cargar datos de contacto
+      setWhatsapp(perfilData?.whatsapp || '')
+      setHorarioInicio(perfilData?.horario_inicio ?? 9)
+      setHorarioFin(perfilData?.horario_fin ?? 20)
 
       const { data: autosData } = await supabase
         .from('autos').select('*').eq('vendedor_id', session.user.id).order('created_at', { ascending: false })
@@ -54,6 +70,7 @@ export default function Perfil() {
     cargarPerfil()
   }, [])
 
+  // Guardar nombre del perfil
   const guardarPerfil = async () => {
     if (!nuevoNombre.trim()) return
     setGuardando(true)
@@ -65,6 +82,24 @@ export default function Perfil() {
       setTimeout(() => setMensajeExito(''), 3000)
     }
     setGuardando(false)
+  }
+
+  // Guardar WhatsApp y horario de contacto
+  const guardarContacto = async () => {
+    if (!whatsapp.trim()) return
+    setGuardandoContacto(true)
+    const { error } = await supabase.from('perfiles').update({
+      whatsapp: whatsapp.trim(),
+      horario_inicio: horarioInicio,
+      horario_fin: horarioFin,
+    }).eq('id', usuario.id)
+    if (!error) {
+      setPerfil((prev: any) => ({ ...prev, whatsapp: whatsapp.trim(), horario_inicio: horarioInicio, horario_fin: horarioFin }))
+      setEditandoContacto(false) // Volver a modo vista
+      setMensajeExito('Datos de contacto actualizados')
+      setTimeout(() => setMensajeExito(''), 3000)
+    }
+    setGuardandoContacto(false)
   }
 
   const eliminarAuto = async (autoId: string) => {
@@ -122,8 +157,6 @@ export default function Perfil() {
         .btn-guardar:hover { background: #1d4ed8 !important; }
         .input-nombre:focus { border: 1.5px solid #2563eb !important; outline: none; }
         .tab-btn { transition: all 0.2s; cursor: pointer; }
-
-        /* Perfil responsive */
         .perfil-grid { grid-template-columns: 300px 1fr !important; }
         .pub-card-inner { flex-direction: row !important; }
         .pub-card-img { width: 160px !important; min-width: 160px !important; height: 120px !important; }
@@ -153,7 +186,7 @@ export default function Perfil() {
           {/* Columna izquierda */}
           <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
 
-            {/* Card principal */}
+            {/* Card principal del perfil */}
             <div style={{background: '#fff', borderRadius: '16px', padding: '32px 24px', border: '1px solid #eee', textAlign: 'center'}}>
               <div style={{
                 width: '80px', height: '80px', borderRadius: '50%',
@@ -228,7 +261,122 @@ export default function Perfil() {
               ))}
             </div>
 
-            {/* Card verificación */}
+            {/* Card contacto WhatsApp */}
+            <div style={{background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #eee'}}>
+              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px'}}>
+                <h3 style={{fontSize: '14px', fontWeight: '700', color: '#000'}}>
+                  📱 Contacto WhatsApp
+                </h3>
+                {/* Botón editar — solo visible en modo vista cuando ya hay datos */}
+                {perfil?.whatsapp && !editandoContacto && (
+                  <button
+                    onClick={() => setEditandoContacto(true)}
+                    style={{background: 'none', border: 'none', fontSize: '12px', color: '#2563eb', fontWeight: '600', cursor: 'pointer', padding: 0}}
+                  >
+                    Editar
+                  </button>
+                )}
+              </div>
+
+              {/* Modo vista — muestra datos guardados */}
+              {perfil?.whatsapp && !editandoContacto ? (
+                <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                  <div style={{background: '#f9f9f9', borderRadius: '10px', padding: '12px 16px'}}>
+                    <div style={{fontSize: '11px', color: '#aaa', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Número</div>
+                    <div style={{fontSize: '14px', fontWeight: '700', color: '#000'}}>🇨🇱 +56 {perfil.whatsapp}</div>
+                  </div>
+                  <div style={{background: '#f9f9f9', borderRadius: '10px', padding: '12px 16px'}}>
+                    <div style={{fontSize: '11px', color: '#aaa', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Horario de atención</div>
+                    <div style={{fontSize: '14px', fontWeight: '700', color: '#000'}}>{perfil.horario_inicio}:00 — {perfil.horario_fin}:00</div>
+                  </div>
+                </div>
+
+              ) : (
+                // Modo edición — formulario para ingresar o editar datos
+                <div>
+                  <div style={{marginBottom: '16px'}}>
+                    <label style={{fontSize: '12px', fontWeight: '600', color: '#555', letterSpacing: '0.5px', display: 'block', marginBottom: '6px'}}>
+                      NÚMERO WHATSAPP
+                    </label>
+                    <div style={{display: 'flex', gap: '8px'}}>
+                      <div style={{padding: '10px 12px', background: '#f5f5f5', border: '1.5px solid #e5e5e5', borderRadius: '8px', fontSize: '13px', color: '#555', fontWeight: '600', whiteSpace: 'nowrap'}}>
+                        🇨🇱 +56
+                      </div>
+                      <input
+                        type="tel"
+                        placeholder="9 1234 5678"
+                        value={whatsapp}
+                        onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
+                        maxLength={9}
+                        style={{flex: 1, padding: '10px 12px', fontSize: '14px', border: '1.5px solid #e5e5e5', borderRadius: '8px', background: '#fafafa', color: '#000', outline: 'none'}}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{marginBottom: '16px'}}>
+                    <label style={{fontSize: '12px', fontWeight: '600', color: '#555', letterSpacing: '0.5px', display: 'block', marginBottom: '6px'}}>
+                      HORARIO DE ATENCIÓN
+                    </label>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                      <select
+                        value={horarioInicio}
+                        onChange={(e) => setHorarioInicio(Number(e.target.value))}
+                        style={{flex: 1, padding: '10px 8px', fontSize: '13px', border: '1.5px solid #e5e5e5', borderRadius: '8px', background: '#fafafa', color: '#000', outline: 'none'}}
+                      >
+                        {Array.from({length: 24}, (_, i) => (
+                          <option key={i} value={i}>{i}:00</option>
+                        ))}
+                      </select>
+                      <span style={{fontSize: '13px', color: '#888', fontWeight: '600'}}>a</span>
+                      <select
+                        value={horarioFin}
+                        onChange={(e) => setHorarioFin(Number(e.target.value))}
+                        style={{flex: 1, padding: '10px 8px', fontSize: '13px', border: '1.5px solid #e5e5e5', borderRadius: '8px', background: '#fafafa', color: '#000', outline: 'none'}}
+                      >
+                        {Array.from({length: 24}, (_, i) => (
+                          <option key={i} value={i}>{i}:00</option>
+                        ))}
+                      </select>
+                    </div>
+                    <p style={{fontSize: '11px', color: '#aaa', marginTop: '6px'}}>
+                      Fuera de este horario el botón de contacto se deshabilitará
+                    </p>
+                  </div>
+
+                  <div style={{display: 'flex', gap: '8px'}}>
+                    <button
+                      onClick={guardarContacto}
+                      disabled={guardandoContacto || !whatsapp.trim()}
+                      style={{
+                        flex: 1,
+                        background: guardandoContacto || !whatsapp.trim() ? '#93c5fd' : '#2563eb',
+                        color: '#fff', border: 'none', padding: '10px', borderRadius: '8px',
+                        fontSize: '13px', fontWeight: '700',
+                        cursor: guardandoContacto || !whatsapp.trim() ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {guardandoContacto ? 'Guardando...' : 'Guardar'}
+                    </button>
+                    {/* Botón cancelar — solo visible si ya había datos guardados */}
+                    {perfil?.whatsapp && (
+                      <button
+                        onClick={() => {
+                          setEditandoContacto(false)
+                          setWhatsapp(perfil.whatsapp)
+                          setHorarioInicio(perfil.horario_inicio ?? 9)
+                          setHorarioFin(perfil.horario_fin ?? 20)
+                        }}
+                        style={{flex: 1, background: '#fff', color: '#666', border: '1px solid #e5e5e5', padding: '10px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer'}}
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Card verificación — solo visible si no está verificado */}
             {!perfil?.verificado && (
               <div style={{background: '#fffbeb', borderRadius: '16px', padding: '20px', border: '1px solid #fde68a'}}>
                 <div style={{fontSize: '20px', marginBottom: '8px'}}>🔐</div>

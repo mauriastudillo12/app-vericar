@@ -1,6 +1,6 @@
 // Componente de autos destacados
 // Lee autos reales desde Supabase donde destacado = true
-// Cada tarjeta lleva al detalle del auto
+// Cada tarjeta lleva al detalle del auto donde está el botón de contacto
 
 'use client'
 
@@ -37,8 +37,6 @@ export default function FeaturedCars() {
       <style>{`
         .car-card { transition: transform 0.25s ease, box-shadow 0.25s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
         .car-card:hover { transform: translateY(-8px); box-shadow: 0 16px 40px rgba(37,99,235,0.15) !important; }
-        .btn-contactar { transition: background 0.2s ease, transform 0.15s ease; }
-        .btn-contactar:hover { background: #1d4ed8 !important; transform: scale(1.05); }
         .btn-ver-todos { transition: background 0.2s ease, color 0.2s ease; }
         .btn-ver-todos:hover { background: #000 !important; color: #fff !important; }
       `}</style>
@@ -103,14 +101,10 @@ export default function FeaturedCars() {
                   <div style={{ fontSize: '22px', fontWeight: '800', color: '#000', marginBottom: '16px' }}>
                     {formatPrecio(auto.precio)}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '14px', borderTop: '1px solid #f0f0f0' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
-                      <span style={{ fontSize: '12px', color: '#888' }}>{getNombreRegion(auto.region)}</span>
-                    </div>
-                    <button className="btn-contactar" onClick={(e) => e.preventDefault()} style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '8px 18px', borderRadius: '7px', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}>
-                      Contactar
-                    </button>
+                  {/* Solo región — el contacto está en el detalle del auto */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingTop: '14px', borderTop: '1px solid #f0f0f0' }}>
+                    <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
+                    <span style={{ fontSize: '12px', color: '#888' }}>{getNombreRegion(auto.region)}</span>
                   </div>
                 </div>
               </div>
