@@ -1,6 +1,7 @@
 // Panel de administración de VeriCar
 // Solo accesible para usuarios con es_admin = true
 // Gestiona usuarios, publicaciones, destacados y verificaciones de identidad
+// Verificaciones: busca verificacion_pendiente = true, aprueba/rechaza manualmente
 
 'use client'
 
@@ -16,17 +17,12 @@ export default function Admin() {
   const [cargando, setCargando] = useState(true)
   const [tabActiva, setTabActiva] = useState<'stats' | 'verificaciones' | 'autos' | 'repuestos' | 'talleres' | 'usuarios'>('stats')
 
-  // Datos
   const [stats, setStats] = useState({ autos: 0, repuestos: 0, talleres: 0, usuarios: 0, pendientes: 0 })
   const [autos, setAutos] = useState<any[]>([])
   const [repuestos, setRepuestos] = useState<any[]>([])
   const [talleres, setTalleres] = useState<any[]>([])
   const [usuarios, setUsuarios] = useState<any[]>([])
   const [verificacionesPendientes, setVerificacionesPendientes] = useState<any[]>([])
-  const [verificados, setVerificados] = useState<any[]>([])
-
-  // Estado para ver foto del carnet en modal
-  const [fotoViendoUrl, setFotoViendoUrl] = useState<{anverso: string, reverso: string, userId: string} | null>(null)
 
   useEffect(() => {
     const verificarAdmin = async () => {
@@ -50,26 +46,14 @@ export default function Admin() {
 
   const cargarTodo = async () => {
 
-    // Cargar verificaciones pendientes — usuarios con foto_carnet sin verificar
+    // Cargar verificaciones pendientes — usuarios con verificacion_pendiente = true
     const { data: pendientesData } = await supabase
       .from('perfiles')
       .select('*')
       .eq('verificado', false)
+      .eq('verificacion_pendiente', true)
 
-    // Filtrar en JS los que tienen foto_carnet real
-    const pendientesFiltrados = (pendientesData || []).filter(
-      u => u.foto_carnet && u.foto_carnet !== 'null' && u.foto_carnet.length > 0
-    )
-    setVerificacionesPendientes(pendientesFiltrados)
-
-    // Cargar usuarios ya verificados con carnet
-const { data: verificadosData } = await supabase
-  .from('perfiles')
-  .select('*')
-  .eq('verificado', true)
-  .not('foto_carnet', 'is', null)
-
-setVerificados(verificadosData || [])
+    setVerificacionesPendientes(pendientesData || [])
 
     // Stats
     const [autosRes, repuestosRes, talleresRes, usuariosRes] = await Promise.all([
@@ -84,7 +68,7 @@ setVerificados(verificadosData || [])
       repuestos: repuestosRes.count || 0,
       talleres: talleresRes.count || 0,
       usuarios: usuariosRes.count || 0,
-      pendientes: pendientesFiltrados.length,
+      pendientes: (pendientesData || []).length,
     })
 
     // Autos
@@ -103,55 +87,31 @@ setVerificados(verificadosData || [])
     setTalleres(talleresData || [])
 
     // Usuarios
-    const { data: usuariosData, error: usuariosError } = await supabase
-  .from('perfiles').select('*')
-
-console.log('Usuarios:', usuariosData, 'Error:', usuariosError)
-setUsuarios(usuariosData || [])
+    const { data: usuariosData } = await supabase
+      .from('perfiles').select('*')
+    setUsuarios(usuariosData || [])
   }
 
-  // Ver fotos del carnet de un usuario en el modal
-  const verCarnet = async (u: any) => {
-    if (!u.foto_carnet) return
-
-    try {
-      const fotos = JSON.parse(u.foto_carnet)
-
-      // Obtener URLs firmadas del bucket privado carnets
-      const [anversoRes, reversoRes] = await Promise.all([
-        supabase.storage.from('carnets').createSignedUrl(fotos.anverso, 3600),
-        supabase.storage.from('carnets').createSignedUrl(fotos.reverso, 3600),
-      ])
-
-      if (anversoRes.data && reversoRes.data) {
-        setFotoViendoUrl({
-          anverso: anversoRes.data.signedUrl,
-          reverso: reversoRes.data.signedUrl,
-          userId: u.id,
-        })
-      }
-    } catch (err) {
-      console.error('Error cargando carnet:', err)
-    }
-  }
-
-  // Aprobar verificación de un usuario
+  // Aprobar verificación — marca verificado y limpia pendiente
   const aprobarVerificacion = async (userId: string) => {
-    await supabase.from('perfiles').update({ verificado: true }).eq('id', userId)
+    await supabase.from('perfiles').update({
+      verificado: true,
+      verificacion_pendiente: false,
+    }).eq('id', userId)
     setVerificacionesPendientes(prev => prev.filter(u => u.id !== userId))
-    setUsuarios(prev => prev.map(u => u.id === userId ? { ...u, verificado: true } : u))
+    setUsuarios(prev => prev.map(u => u.id === userId ? { ...u, verificado: true, verificacion_pendiente: false } : u))
     setStats(prev => ({ ...prev, pendientes: prev.pendientes - 1 }))
-    setFotoViendoUrl(null)
   }
 
-  // Rechazar verificación — limpia la foto del carnet
+  // Rechazar verificación — limpia pendiente para que pueda volver a intentarlo
   const rechazarVerificacion = async (userId: string) => {
     const confirmar = window.confirm('¿Rechazar esta solicitud? El usuario deberá enviar una nueva.')
     if (!confirmar) return
-    await supabase.from('perfiles').update({ foto_carnet: null }).eq('id', userId)
+    await supabase.from('perfiles').update({
+      verificacion_pendiente: false,
+    }).eq('id', userId)
     setVerificacionesPendientes(prev => prev.filter(u => u.id !== userId))
     setStats(prev => ({ ...prev, pendientes: prev.pendientes - 1 }))
-    setFotoViendoUrl(null)
   }
 
   // Toggle destacado auto
@@ -196,7 +156,7 @@ setUsuarios(usuariosData || [])
     setStats(prev => ({ ...prev, talleres: prev.talleres - 1 }))
   }
 
-  // Toggle verificado usuario
+  // Toggle verificado usuario — para aprobar/revocar manualmente desde la tabla de usuarios
   const toggleVerificado = async (id: string, actual: boolean) => {
     await supabase.from('perfiles').update({ verificado: !actual }).eq('id', id)
     setUsuarios(prev => prev.map(u => u.id === id ? { ...u, verificado: !actual } : u))
@@ -238,64 +198,10 @@ setUsuarios(usuariosData || [])
         .btn-aprobar { transition: all 0.2s; }
         .btn-aprobar:hover { background: #15803d !important; }
         .btn-rechazar { transition: all 0.2s; }
-        .btn-rechazar:hover { background: #dc2626 !important; color: #fff !important; }
-        .btn-ver-carnet { transition: all 0.2s; }
-        .btn-ver-carnet:hover { background: #eff6ff !important; color: #2563eb !important; }
+        .btn-rechazar:hover { background: #fef2f2 !important; }
       `}</style>
 
       <Navbar />
-
-      {/* Modal para ver foto del carnet */}
-      {fotoViendoUrl && (
-        <div
-          onClick={() => setFotoViendoUrl(null)}
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)',
-            zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '40px',
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{background: '#fff', borderRadius: '20px', padding: '32px', maxWidth: '800px', width: '100%'}}
-          >
-            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px'}}>
-              <h3 style={{fontSize: '18px', fontWeight: '800', color: '#000'}}>Cédula de identidad</h3>
-              <button onClick={() => setFotoViendoUrl(null)} style={{background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888'}}>✕</button>
-            </div>
-
-            {/* Fotos del carnet */}
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px'}}>
-              <div>
-                <p style={{fontSize: '12px', fontWeight: '700', color: '#888', marginBottom: '8px'}}>PARTE DELANTERA</p>
-                <img src={fotoViendoUrl.anverso} alt="Anverso" style={{width: '100%', borderRadius: '10px', border: '1px solid #eee'}} />
-              </div>
-              <div>
-                <p style={{fontSize: '12px', fontWeight: '700', color: '#888', marginBottom: '8px'}}>PARTE TRASERA</p>
-                <img src={fotoViendoUrl.reverso} alt="Reverso" style={{width: '100%', borderRadius: '10px', border: '1px solid #eee'}} />
-              </div>
-            </div>
-
-            {/* Botones del modal — usan el userId guardado */}
-            <div style={{display: 'flex', gap: '12px'}}>
-              <button
-                className="btn-aprobar"
-                onClick={() => aprobarVerificacion(fotoViendoUrl.userId)}
-                style={{flex: 1, background: '#16a34a', color: '#fff', border: 'none', padding: '14px', borderRadius: '10px', fontSize: '14px', fontWeight: '700', cursor: 'pointer'}}
-              >
-                ✓ Aprobar verificación
-              </button>
-              <button
-                className="btn-rechazar"
-                onClick={() => rechazarVerificacion(fotoViendoUrl.userId)}
-                style={{flex: 1, background: '#fff', color: '#dc2626', border: '1.5px solid #fecaca', padding: '14px', borderRadius: '10px', fontSize: '14px', fontWeight: '700', cursor: 'pointer'}}
-              >
-                ✕ Rechazar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div style={{paddingTop: '104px', maxWidth: '1200px', margin: '0 auto', padding: '120px 40px 60px'}}>
 
@@ -359,10 +265,15 @@ setUsuarios(usuariosData || [])
         {/* Tab Verificaciones */}
         {tabActiva === 'verificaciones' && (
           <div style={{background: '#fff', borderRadius: '16px', border: '1px solid #eee', overflow: 'hidden'}}>
-            <div style={{padding: '20px 24px', borderBottom: '1px solid #f0f0f0'}}>
+            <div style={{padding: '20px 24px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
               <h3 style={{fontSize: '16px', fontWeight: '700', color: '#000'}}>
-                Solicitudes de verificación 
+                Solicitudes de verificación
               </h3>
+              {stats.pendientes > 0 && (
+                <span style={{background: '#fef2f2', color: '#dc2626', fontSize: '12px', fontWeight: '700', padding: '4px 12px', borderRadius: '20px', border: '1px solid #fecaca'}}>
+                  {stats.pendientes} pendiente{stats.pendientes > 1 ? 's' : ''}
+                </span>
+              )}
             </div>
 
             {verificacionesPendientes.length === 0 ? (
@@ -377,7 +288,7 @@ setUsuarios(usuariosData || [])
                   <tr style={{background: '#fafafa', borderBottom: '1px solid #f0f0f0'}}>
                     <th style={{padding: '12px 20px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#aaa', letterSpacing: '1px'}}>USUARIO</th>
                     <th style={{padding: '12px 20px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#aaa', letterSpacing: '1px'}}>RUT</th>
-                    <th style={{padding: '12px 20px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#aaa', letterSpacing: '1px'}}>FECHA</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#aaa', letterSpacing: '1px'}}>FECHA SOLICITUD</th>
                     <th style={{padding: '12px 20px', textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#aaa', letterSpacing: '1px'}}>ACCIONES</th>
                   </tr>
                 </thead>
@@ -395,32 +306,29 @@ setUsuarios(usuariosData || [])
                           </div>
                         </div>
                       </td>
-                      <td style={{padding: '14px 20px', fontSize: '14px', fontWeight: '600', color: '#000'}}>{u.rut || '—'}</td>
+                      <td style={{padding: '14px 20px'}}>
+                        <span style={{fontSize: '14px', fontWeight: '700', color: '#000', background: '#f9f9f9', padding: '4px 12px', borderRadius: '6px', border: '1px solid #eee'}}>
+                          {u.rut || '—'}
+                        </span>
+                      </td>
                       <td style={{padding: '14px 20px', fontSize: '13px', color: '#888'}}>
                         {new Date(u.created_at).toLocaleDateString('es-CL')}
                       </td>
                       <td style={{padding: '14px 20px', textAlign: 'center'}}>
                         <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
                           <button
-                            className="btn-ver-carnet"
-                            onClick={() => verCarnet(u)}
-                            style={{padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', border: '1px solid #e5e5e5', background: '#fff', color: '#333'}}
-                          >
-                            Ver carnet
-                          </button>
-                          <button
                             className="btn-aprobar"
                             onClick={() => aprobarVerificacion(u.id)}
-                            style={{padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', border: 'none', background: '#16a34a', color: '#fff'}}
+                            style={{padding: '7px 16px', borderRadius: '7px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', border: 'none', background: '#16a34a', color: '#fff'}}
                           >
-                            Aprobar
+                            ✓ Aprobar
                           </button>
                           <button
                             className="btn-rechazar"
                             onClick={() => rechazarVerificacion(u.id)}
-                            style={{padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', border: '1px solid #fecaca', background: '#fff', color: '#dc2626'}}
+                            style={{padding: '7px 16px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', border: '1px solid #fecaca', background: '#fff', color: '#dc2626'}}
                           >
-                            Rechazar
+                            ✕ Rechazar
                           </button>
                         </div>
                       </td>
@@ -597,7 +505,7 @@ setUsuarios(usuariosData || [])
                   <th style={{padding: '12px 20px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#aaa', letterSpacing: '1px'}}>USUARIO</th>
                   <th style={{padding: '12px 20px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#aaa', letterSpacing: '1px'}}>RUT</th>
                   <th style={{padding: '12px 20px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#aaa', letterSpacing: '1px'}}>FECHA</th>
-                  <th style={{padding: '12px 20px', textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#aaa', letterSpacing: '1px'}}>VERIFICADO</th>
+                  <th style={{padding: '12px 20px', textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#aaa', letterSpacing: '1px'}}>ESTADO</th>
                   <th style={{padding: '12px 20px', textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#aaa', letterSpacing: '1px'}}>ADMIN</th>
                 </tr>
               </thead>
@@ -620,13 +528,20 @@ setUsuarios(usuariosData || [])
                       {new Date(u.created_at).toLocaleDateString('es-CL')}
                     </td>
                     <td style={{padding: '14px 20px', textAlign: 'center'}}>
-                      <button
-                        className={u.verificado ? 'btn-toggle-on' : 'btn-toggle-off'}
-                        onClick={() => toggleVerificado(u.id, u.verificado)}
-                        style={{padding: '5px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', border: 'none', background: u.verificado ? '#f0fdf4' : '#f5f5f5', color: u.verificado ? '#16a34a' : '#888'}}
-                      >
-                        {u.verificado ? '✓ Verificado' : 'Sin verificar'}
-                      </button>
+                      {/* Muestra pendiente si tiene solicitud en espera */}
+                      {u.verificacion_pendiente && !u.verificado ? (
+                        <span style={{fontSize: '12px', fontWeight: '700', color: '#f59e0b', background: '#fffbeb', padding: '4px 10px', borderRadius: '6px', border: '1px solid #fde68a'}}>
+                          ⏳ Pendiente
+                        </span>
+                      ) : (
+                        <button
+                          className={u.verificado ? 'btn-toggle-on' : 'btn-toggle-off'}
+                          onClick={() => toggleVerificado(u.id, u.verificado)}
+                          style={{padding: '5px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', border: 'none', background: u.verificado ? '#f0fdf4' : '#f5f5f5', color: u.verificado ? '#16a34a' : '#888'}}
+                        >
+                          {u.verificado ? '✓ Verificado' : 'Sin verificar'}
+                        </button>
+                      )}
                     </td>
                     <td style={{padding: '14px 20px', textAlign: 'center'}}>
                       {u.es_admin ? (

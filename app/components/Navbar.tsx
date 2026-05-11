@@ -1,6 +1,5 @@
 // Navbar de VeriCar
 // Dos elementos con sesión: botón Publicar y avatar con menú desplegable
-// Punto rojo en avatar y en opción Mensajes cuando hay mensajes sin leer
 // Link al panel admin solo visible para administradores
 
 'use client'
@@ -24,26 +23,22 @@ export default function Navbar({ activa }: { activa?: string }) {
   const [esAdmin, setEsAdmin] = useState(false)
   const [menuAbierto, setMenuAbierto] = useState(false)
   const [menuPublicarAbierto, setMenuPublicarAbierto] = useState(false)
-  const [mensajesSinLeer, setMensajesSinLeer] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const menuPublicarRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUsuario(session?.user ?? null)
-      if (session?.user) {
-        cargarPerfil(session.user.id)
-        verificarMensajesSinLeer(session.user.id)
-      }
+      if (session?.user) cargarPerfil(session.user.id)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUsuario(session?.user ?? null)
       if (session?.user) {
         cargarPerfil(session.user.id)
-        verificarMensajesSinLeer(session.user.id)
       } else {
         setEsAdmin(false)
+        setPerfil(null)
       }
     })
 
@@ -73,28 +68,6 @@ export default function Navbar({ activa }: { activa?: string }) {
       .single()
     setPerfil(data)
     setEsAdmin(data?.es_admin || false)
-  }
-
-  // Verificar mensajes sin leer para mostrar punto rojo
-  const verificarMensajesSinLeer = async (userId: string) => {
-    const { data: convs } = await supabase
-      .from('conversaciones')
-      .select('id')
-      .or(`comprador_id.eq.${userId},vendedor_id.eq.${userId}`)
-
-    if (!convs || convs.length === 0) return
-
-    const convIds = convs.map((c: any) => c.id)
-
-    const { data: mensajes } = await supabase
-      .from('mensajes')
-      .select('id')
-      .in('conversacion_id', convIds)
-      .eq('leido', false)
-      .neq('emisor_id', userId)
-      .limit(1)
-
-    setMensajesSinLeer((mensajes?.length ?? 0) > 0)
   }
 
   const handleLogout = async () => {
@@ -183,9 +156,6 @@ export default function Navbar({ activa }: { activa?: string }) {
                     boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
                     overflow: 'hidden', zIndex: 200,
                   }}>
-
-
-
                     <Link href="/publicar-auto" style={{ textDecoration: 'none' }} onClick={() => setMenuPublicarAbierto(false)}>
                       <div className="publicar-item" style={{
                         padding: '12px 16px', fontSize: '13px',
@@ -219,14 +189,13 @@ export default function Navbar({ activa }: { activa?: string }) {
                 )}
               </div>
 
-              {/* Avatar con punto rojo y menú desplegable */}
+              {/* Avatar con menú desplegable */}
               <div ref={menuRef} style={{ position: 'relative' }}>
                 <div
                   className="avatar-btn"
                   onClick={() => setMenuAbierto(!menuAbierto)}
                   style={{ position: 'relative' }}
                 >
-                  {/* Avatar */}
                   <div style={{
                     width: '38px', height: '38px', borderRadius: '50%',
                     background: '#2563eb', color: '#fff',
@@ -238,15 +207,6 @@ export default function Navbar({ activa }: { activa?: string }) {
                   }}>
                     {inicial}
                   </div>
-
-                  {/* Punto rojo sobre el avatar cuando hay mensajes sin leer */}
-                  {mensajesSinLeer && (
-                    <div style={{
-                      position: 'absolute', top: '-2px', right: '-2px',
-                      width: '10px', height: '10px', borderRadius: '50%',
-                      background: '#ef4444', border: '2px solid #fff',
-                    }} />
-                  )}
                 </div>
 
                 {/* Menú desplegable del avatar */}
@@ -291,25 +251,6 @@ export default function Navbar({ activa }: { activa?: string }) {
                           display: 'flex', alignItems: 'center', gap: '10px',
                         }}>
                           <span>📋</span> Mis publicaciones
-                        </div>
-                      </Link>
-
-                      {/* Mensajes con punto rojo */}
-                      <Link href="/chat" style={{ textDecoration: 'none' }} onClick={() => setMenuAbierto(false)}>
-                        <div className="menu-item" style={{
-                          padding: '10px 16px', fontSize: '13px',
-                          color: '#333', fontWeight: '500',
-                          display: 'flex', alignItems: 'center', gap: '10px',
-                        }}>
-                          <span>💬</span>
-                          <span>Mensajes</span>
-                          {mensajesSinLeer && (
-                            <div style={{
-                              marginLeft: 'auto',
-                              width: '8px', height: '8px', borderRadius: '50%',
-                              background: '#ef4444',
-                            }} />
-                          )}
                         </div>
                       </Link>
 
