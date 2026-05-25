@@ -1,15 +1,15 @@
-// Página para publicar un repuesto
-// Solo accesible para usuarios con sesión iniciada
-// Incluye subida de fotos a Supabase Storage
+// Página para editar un repuesto publicado
+// Solo el dueño de la publicación puede editar — se verifica vendedor_id
+// Carga los datos actuales, permite modificar todos los campos y fotos
 
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import Navbar from '../components/Navbar'
-import { supabase } from '../lib/supabase'
+import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
+import Navbar from '../../components/Navbar'
+import { supabase } from '../../lib/supabase'
 
-// Regiones de Chile
 const REGIONES = [
   { codigo: '15', nombre: 'Arica y Parinacota' },
   { codigo: '01', nombre: 'Tarapacá' },
@@ -29,9 +29,7 @@ const REGIONES = [
   { codigo: '12', nombre: 'Magallanes' },
 ]
 
-// Comunas principales por región
 const COMUNAS: Record<string, string[]> = {
-  // Región Metropolitana — lista completa de comunas
   '13': [
     'Alhué', 'Buin', 'Calera de Tango', 'Cerrillos', 'Cerro Navia', 'Conchalí',
     'Curacaví', 'El Bosque', 'El Monte', 'Estación Central', 'Huechuraba',
@@ -60,7 +58,6 @@ const COMUNAS: Record<string, string[]> = {
   '12': ['Punta Arenas', 'Puerto Natales', 'Puerto Williams'],
 }
 
-// Marcas de autos — lista ampliada con marcas europeas, americanas y asiáticas
 const MARCAS = [
   'Alfa Romeo', 'Audi', 'BMW', 'BYD', 'Chery', 'Chevrolet', 'Citroën',
   'DFSK', 'Dodge', 'Fiat', 'Ford', 'GAC', 'Haval', 'Honda', 'Hyundai',
@@ -69,36 +66,23 @@ const MARCAS = [
   'Suzuki', 'Toyota', 'Volkswagen', 'Volvo',
 ]
 
-export default function PublicarRepuesto() {
-
+export default function EditarRepuesto() {
   const router = useRouter()
+  const params = useParams()
+  const repuestoId = params.id as string
+
   const [cargando, setCargando] = useState(false)
+  const [cargandoDatos, setCargandoDatos] = useState(true)
   const [error, setError] = useState('')
   const [exito, setExito] = useState(false)
   const [usuario, setUsuario] = useState<any>(null)
-  const [fotos, setFotos] = useState<File[]>([])
-  const [previews, setPreviews] = useState<string[]>([])
+
+  // Fotos existentes (URLs desde la DB) y nuevas fotos a subir
+  const [fotosExistentes, setFotosExistentes] = useState<string[]>([])
+  const [fotosNuevas, setFotosNuevas] = useState<File[]>([])
+  const [previewsNuevas, setPreviewsNuevas] = useState<string[]>([])
   const inputFotosRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-  supabase.auth.getSession().then(async ({ data: { session } }) => {
-    if (!session) { router.push('/login'); return }
-    setUsuario(session.user)
-
-    // Verificar que el usuario esté verificado
-    const { data: perfil } = await supabase
-      .from('perfiles')
-      .select('verificado')
-      .eq('id', session.user.id)
-      .single()
-
-    if (!perfil?.verificado) {
-      router.push('/verificar?origen=publicar-repuesto')
-    }
-  })
-}, [])
-
-  // Estado del formulario con todos los campos
   const [form, setForm] = useState({
     nombre: '',
     categoria: '',
@@ -112,62 +96,111 @@ export default function PublicarRepuesto() {
     descripcion: '',
   })
 
-  // Actualiza un campo específico del formulario
   const updateForm = (campo: string, valor: any) => {
     setForm(prev => ({ ...prev, [campo]: valor }))
   }
 
-  // Formatea precio con puntos de miles (ej: 45.000) bloqueando letras
+  // Formatea precio con puntos de miles mientras se escribe
   const handlePrecioChange = (valor: string) => {
     const soloNumeros = valor.replace(/\D/g, '')
     if (!soloNumeros) { updateForm('precio', ''); return }
     updateForm('precio', Number(soloNumeros).toLocaleString('es-CL'))
   }
 
-  // Maneja la selección de fotos y crea previews
+  // Carga los datos actuales del repuesto y verifica propiedad
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) { router.push('/login'); return }
+      setUsuario(session.user)
+
+      const { data: repuesto, error: fetchError } = await supabase
+        .from('repuestos')
+        .select('*')
+        .eq('id', repuestoId)
+        .single()
+
+      if (fetchError || !repuesto) {
+        setError('No se encontró la publicación')
+        setCargandoDatos(false)
+        return
+      }
+
+      // Solo el dueño puede editar
+      if (repuesto.vendedor_id !== session.user.id) {
+        router.push('/perfil')
+        return
+      }
+
+      // Pre-llenar el formulario con los datos actuales
+      setForm({
+        nombre: repuesto.nombre || '',
+        categoria: repuesto.categoria || '',
+        marca_compatible: repuesto.marca_compatible || '',
+        modelo_compatible: repuesto.modelo_compatible || '',
+        precio: repuesto.precio ? Number(repuesto.precio).toLocaleString('es-CL') : '',
+        estado: repuesto.estado || '',
+        garantia: repuesto.garantia || false,
+        region: repuesto.region || '',
+        comuna: repuesto.comuna || '',
+        descripcion: repuesto.descripcion || '',
+      })
+
+      try {
+        const fotos = JSON.parse(repuesto.fotos || '[]')
+        setFotosExistentes(Array.isArray(fotos) ? fotos : [])
+      } catch {
+        setFotosExistentes([])
+      }
+
+      setCargandoDatos(false)
+    })
+  }, [repuestoId])
+
+  const eliminarFotoExistente = (index: number) => {
+    setFotosExistentes(prev => prev.filter((_, i) => i !== index))
+  }
+
   const handleFotos = (e: React.ChangeEvent<HTMLInputElement>) => {
     const archivos = Array.from(e.target.files || [])
-    if (archivos.length + fotos.length > 10) {
+    const totalFotos = fotosExistentes.length + fotosNuevas.length + archivos.length
+    if (totalFotos > 10) {
       setError('Máximo 10 fotos')
       return
     }
-    setFotos(prev => [...prev, ...archivos])
+    setFotosNuevas(prev => [...prev, ...archivos])
     archivos.forEach(archivo => {
       const reader = new FileReader()
-      reader.onload = (e) => setPreviews(prev => [...prev, e.target?.result as string])
+      reader.onload = (e) => setPreviewsNuevas(prev => [...prev, e.target?.result as string])
       reader.readAsDataURL(archivo)
     })
   }
 
-  // Elimina una foto de la lista
-  const eliminarFoto = (index: number) => {
-    setFotos(prev => prev.filter((_, i) => i !== index))
-    setPreviews(prev => prev.filter((_, i) => i !== index))
+  const eliminarFotoNueva = (index: number) => {
+    setFotosNuevas(prev => prev.filter((_, i) => i !== index))
+    setPreviewsNuevas(prev => prev.filter((_, i) => i !== index))
   }
 
-  // Publica el repuesto en Supabase
-  const handlePublicar = async () => {
-
-    // Validaciones básicas
+  // Guarda los cambios en Supabase
+  const handleGuardar = async () => {
     if (!form.nombre) { setError('Ingresa el nombre del repuesto'); return }
     if (!form.categoria) { setError('Selecciona la categoría'); return }
-    if (!form.marca_compatible) { setError('Ingresa la marca compatible'); return }
+    if (!form.marca_compatible) { setError('Selecciona la marca compatible'); return }
     if (!form.precio) { setError('Ingresa el precio'); return }
     if (!form.estado) { setError('Selecciona el estado'); return }
     if (!form.region) { setError('Selecciona la región'); return }
     if (!form.descripcion) { setError('Escribe una descripción'); return }
-    if (fotos.length < 1) { setError('Sube al menos 1 foto'); return }
+
+    const totalFotos = fotosExistentes.length + fotosNuevas.length
+    if (totalFotos < 1) { setError('Debe haber al menos 1 foto'); return }
 
     setCargando(true)
     setError('')
 
     try {
-      // Subir fotos a Supabase Storage
-      const urlsFotos: string[] = []
-
-      for (const foto of fotos) {
+      // Subir nuevas fotos a Storage
+      const urlsNuevas: string[] = []
+      for (const foto of fotosNuevas) {
         const nombreArchivo = `repuestos/${usuario.id}/${Date.now()}-${foto.name}`
-
         const { error: uploadError } = await supabase.storage
           .from('autos-fotos')
           .upload(nombreArchivo, foto)
@@ -178,18 +211,18 @@ export default function PublicarRepuesto() {
           return
         }
 
-        // Obtener URL pública de la foto
         const { data: urlData } = supabase.storage
           .from('autos-fotos')
           .getPublicUrl(nombreArchivo)
-
-        urlsFotos.push(urlData.publicUrl)
+        urlsNuevas.push(urlData.publicUrl)
       }
 
-      // Insertar el repuesto en Supabase
-      const { error: insertError } = await supabase
+      // Combinar fotos existentes que quedaron + las nuevas subidas
+      const todasLasFotos = [...fotosExistentes, ...urlsNuevas]
+
+      const { error: updateError } = await supabase
         .from('repuestos')
-        .insert({
+        .update({
           nombre: form.nombre,
           categoria: form.categoria,
           marca_compatible: form.marca_compatible,
@@ -198,19 +231,20 @@ export default function PublicarRepuesto() {
           estado: form.estado,
           garantia: form.garantia,
           region: form.region,
+          comuna: form.comuna,
           descripcion: form.descripcion,
-          vendedor_id: usuario?.id,
-          fotos: JSON.stringify(urlsFotos),
+          fotos: JSON.stringify(todasLasFotos),
         })
+        .eq('id', repuestoId)
 
-      if (insertError) {
-        setError('Error al publicar: ' + insertError.message)
+      if (updateError) {
+        setError('Error al guardar: ' + updateError.message)
         setCargando(false)
         return
       }
 
       setExito(true)
-    } catch (err) {
+    } catch {
       setError('Ocurrió un error inesperado')
     }
     setCargando(false)
@@ -237,22 +271,14 @@ export default function PublicarRepuesto() {
         <div style={{paddingTop: '104px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 104px)'}}>
           <div style={{background: '#fff', borderRadius: '20px', padding: '48px 40px', maxWidth: '480px', width: '100%', textAlign: 'center', border: '1px solid #eee', boxShadow: '0 8px 40px rgba(0,0,0,0.08)'}}>
             <div style={{fontSize: '56px', marginBottom: '16px'}}>✅</div>
-            <h2 style={{fontSize: '1.6rem', fontWeight: '800', color: '#000', marginBottom: '8px'}}>¡Repuesto publicado!</h2>
-            <p style={{fontSize: '14px', color: '#888', marginBottom: '32px'}}>Tu publicación ya está visible en la sección de repuestos.</p>
+            <h2 style={{fontSize: '1.6rem', fontWeight: '800', color: '#000', marginBottom: '8px'}}>¡Cambios guardados!</h2>
+            <p style={{fontSize: '14px', color: '#888', marginBottom: '32px'}}>Tu repuesto fue actualizado correctamente.</p>
             <div style={{display: 'flex', gap: '12px'}}>
               <button onClick={() => router.push('/repuestos')} style={{flex: 1, background: '#2563eb', color: '#fff', border: 'none', padding: '14px', borderRadius: '10px', fontSize: '14px', fontWeight: '700', cursor: 'pointer'}}>
                 Ver repuestos
               </button>
-              <button
-                onClick={() => {
-                  setExito(false)
-                  setFotos([])
-                  setPreviews([])
-                  setForm({ nombre: '', categoria: '', marca_compatible: '', modelo_compatible: '', precio: '', estado: '', garantia: false, region: '', comuna: '', descripcion: '' })
-                }}
-                style={{flex: 1, background: 'transparent', color: '#333', border: '1.5px solid #e5e5e5', padding: '14px', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: 'pointer'}}
-              >
-                Publicar otro
+              <button onClick={() => router.push('/perfil')} style={{flex: 1, background: 'transparent', color: '#333', border: '1.5px solid #e5e5e5', padding: '14px', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: 'pointer'}}>
+                Mis publicaciones
               </button>
             </div>
           </div>
@@ -260,6 +286,20 @@ export default function PublicarRepuesto() {
       </main>
     )
   }
+
+  // Pantalla de carga mientras se obtienen los datos
+  if (cargandoDatos) {
+    return (
+      <main style={{minHeight: '100vh', background: '#f5f5f5'}}>
+        <Navbar />
+        <div style={{paddingTop: '104px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 104px)'}}>
+          <p style={{color: '#888', fontSize: '15px'}}>Cargando publicación...</p>
+        </div>
+      </main>
+    )
+  }
+
+  const totalFotos = fotosExistentes.length + fotosNuevas.length
 
   return (
     <main style={{minHeight: '100vh', background: '#f5f5f5'}}>
@@ -276,16 +316,18 @@ export default function PublicarRepuesto() {
 
       <div style={{paddingTop: '120px', padding: '120px 40px 60px', maxWidth: '720px', margin: '0 auto'}}>
 
-        {/* Encabezado */}
+        {/* Encabezado con botón volver */}
         <div style={{marginBottom: '32px'}}>
-          <h1 style={{fontSize: '2rem', fontWeight: '800', color: '#000', marginBottom: '6px'}}>Publicar repuesto</h1>
-          <p style={{fontSize: '14px', color: '#888'}}>Completa los datos para que los compradores encuentren tu repuesto</p>
+          <Link href="/perfil" style={{textDecoration: 'none', color: '#2563eb', fontSize: '13px', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: '16px'}}>
+            ← Volver a mis publicaciones
+          </Link>
+          <h1 style={{fontSize: '2rem', fontWeight: '800', color: '#000', marginBottom: '6px'}}>Editar repuesto</h1>
+          <p style={{fontSize: '14px', color: '#888'}}>Modifica los datos que quieras actualizar</p>
         </div>
 
-        {/* Formulario */}
         <div style={{background: '#fff', borderRadius: '16px', padding: '32px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '20px'}}>
 
-          {/* Nombre del repuesto */}
+          {/* Nombre */}
           <div>
             <label style={labelStyle}>NOMBRE DEL REPUESTO</label>
             <input
@@ -330,7 +372,6 @@ export default function PublicarRepuesto() {
               <label style={labelStyle}>MARCA COMPATIBLE</label>
               <select className="input-pub" style={selectStyle} value={form.marca_compatible} onChange={(e) => updateForm('marca_compatible', e.target.value)}>
                 <option value="">Selecciona la marca</option>
-                {/* Marcas generadas desde la constante MARCAS */}
                 {MARCAS.map(m => <option key={m}>{m}</option>)}
                 <option>Universal</option>
               </select>
@@ -351,7 +392,7 @@ export default function PublicarRepuesto() {
           {/* Precio */}
           <div>
             <label style={labelStyle}>PRECIO (en pesos)</label>
-            {/* inputMode="numeric" + formato automático con puntos de miles */}
+            {/* inputMode="numeric" muestra teclado numérico en móvil */}
             <input
               className="input-pub"
               style={inputStyle}
@@ -396,7 +437,7 @@ export default function PublicarRepuesto() {
             <label style={labelStyle}>DESCRIPCIÓN</label>
             <textarea
               className="input-pub"
-              placeholder="Describe el repuesto, su condición, de qué auto fue desmontado..."
+              placeholder="Describe el repuesto, su condición..."
               value={form.descripcion}
               onChange={(e) => updateForm('descripcion', e.target.value)}
               style={{...inputStyle, minHeight: '120px', resize: 'vertical', lineHeight: 1.6}}
@@ -407,15 +448,14 @@ export default function PublicarRepuesto() {
           <div>
             <label style={labelStyle}>FOTOS <span style={{color: '#aaa', fontWeight: '400'}}>(mínimo 1, máximo 10)</span></label>
 
-            {/* Grid de previews */}
             <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '10px'}}>
 
-              {/* Previews de fotos seleccionadas */}
-              {previews.map((preview, index) => (
-                <div key={index} style={{position: 'relative', aspectRatio: '1', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e5e5e5'}}>
-                  <img src={preview} alt={`Foto ${index + 1}`} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+              {/* Fotos existentes con borde azul para distinguirlas de las nuevas */}
+              {fotosExistentes.map((url, index) => (
+                <div key={`existente-${index}`} style={{position: 'relative', aspectRatio: '1', borderRadius: '10px', overflow: 'hidden', border: '2px solid #2563eb'}}>
+                  <img src={url} alt={`Foto ${index + 1}`} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
                   <button
-                    onClick={() => eliminarFoto(index)}
+                    onClick={() => eliminarFotoExistente(index)}
                     style={{position: 'absolute', top: '6px', right: '6px', width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
                   >
                     ×
@@ -423,8 +463,21 @@ export default function PublicarRepuesto() {
                 </div>
               ))}
 
-              {/* Botón agregar fotos */}
-              {fotos.length < 10 && (
+              {/* Previews de fotos nuevas */}
+              {previewsNuevas.map((preview, index) => (
+                <div key={`nueva-${index}`} style={{position: 'relative', aspectRatio: '1', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e5e5e5'}}>
+                  <img src={preview} alt={`Nueva foto ${index + 1}`} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+                  <button
+                    onClick={() => eliminarFotoNueva(index)}
+                    style={{position: 'absolute', top: '6px', right: '6px', width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+
+              {/* Botón agregar más fotos */}
+              {totalFotos < 10 && (
                 <div
                   className="foto-slot"
                   onClick={() => inputFotosRef.current?.click()}
@@ -436,11 +489,10 @@ export default function PublicarRepuesto() {
               )}
             </div>
 
-            {/* Input de archivo oculto */}
             <input ref={inputFotosRef} type="file" accept="image/*" multiple onChange={handleFotos} style={{display: 'none'}} />
 
             <p style={{fontSize: '12px', color: '#aaa'}}>
-              {fotos.length} de 10 fotos
+              {totalFotos} de 10 fotos
             </p>
           </div>
 
@@ -455,21 +507,20 @@ export default function PublicarRepuesto() {
             </div>
           </div>
 
-          {/* Mensaje de error */}
           {error && (
             <div style={{background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', fontSize: '13px'}}>
               {error}
             </div>
           )}
 
-          {/* Botón publicar */}
+          {/* Botón guardar cambios */}
           <button
             className="btn-pub"
-            onClick={handlePublicar}
+            onClick={handleGuardar}
             disabled={cargando}
             style={{background: cargando ? '#93c5fd' : '#2563eb', color: '#fff', border: 'none', padding: '16px', borderRadius: '10px', fontSize: '15px', fontWeight: '700', cursor: cargando ? 'not-allowed' : 'pointer', marginTop: '8px'}}
           >
-            {cargando ? 'Publicando...' : 'Publicar repuesto'}
+            {cargando ? 'Guardando...' : 'Guardar cambios'}
           </button>
 
         </div>

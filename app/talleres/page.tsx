@@ -30,7 +30,18 @@ const REGIONES = [
 ]
 
 const COMUNAS: Record<string, string[]> = {
-  '13': ['Santiago', 'Providencia', 'Las Condes', 'Ñuñoa', 'Maipú', 'La Florida', 'Pudahuel', 'Quilicura', 'Peñalolén', 'La Pintana', 'San Bernardo', 'Puente Alto'],
+  // Región Metropolitana — lista completa de comunas
+  '13': [
+    'Alhué', 'Buin', 'Calera de Tango', 'Cerrillos', 'Cerro Navia', 'Conchalí',
+    'Curacaví', 'El Bosque', 'El Monte', 'Estación Central', 'Huechuraba',
+    'Independencia', 'Isla de Maipo', 'La Cisterna', 'La Florida', 'La Granja',
+    'La Pintana', 'La Reina', 'Las Condes', 'Lo Barnechea', 'Lo Prado',
+    'Macul', 'Maipú', 'María Pinto', 'Melipilla', 'Padre Hurtado', 'Paine',
+    'Peñaflor', 'Peñalolén', 'Pirque', 'Providencia', 'Pudahuel', 'Puente Alto',
+    'Quilicura', 'Recoleta', 'Renca', 'San Bernardo', 'San Joaquín',
+    'San José de Maipo', 'San Pedro', 'San Ramón', 'Santiago', 'Talagante',
+    'Vitacura', 'Ñuñoa',
+  ],
   '05': ['Valparaíso', 'Viña del Mar', 'Quilpué', 'Villa Alemana', 'San Antonio', 'Los Andes', 'La Calera'],
   '08': ['Concepción', 'Talcahuano', 'Hualpén', 'San Pedro de la Paz', 'Coronel', 'Chiguayante'],
   '09': ['Temuco', 'Padre Las Casas', 'Angol', 'Victoria', 'Villarrica', 'Pucón'],
@@ -48,7 +59,8 @@ const COMUNAS: Record<string, string[]> = {
   '12': ['Punta Arenas', 'Puerto Natales', 'Puerto Williams'],
 }
 
-const SERVICIOS = ['Mantención', 'Frenos', 'Suspensión', 'Electricidad', 'Pintura', 'Diagnóstico', 'Aire acondicionado', 'Transmisión']
+// Mecánica general como primera opción del filtro
+const SERVICIOS = ['Mecánica general', 'Mantención', 'Frenos', 'Suspensión', 'Electricidad', 'Pintura', 'Diagnóstico', 'Aire acondicionado', 'Transmisión']
 
 export default function Talleres() {
 
@@ -72,13 +84,15 @@ export default function Talleres() {
     cargarTalleres()
   }, [])
 
-  const cargarTalleres = async () => {
+  const cargarTalleres = async (busquedaOverride?: string) => {
     setCargando(true)
+    const textoBusqueda = busquedaOverride !== undefined ? busquedaOverride : busqueda
     let query = supabase.from('talleres').select('*')
     if (region) query = query.eq('region', region)
     if (comuna) query = query.eq('comuna', comuna)
     if (servicio) query = query.ilike('servicios', `%${servicio}%`)
-    if (busqueda) query = query.ilike('nombre', `%${busqueda}%`)
+    // Busca en nombre, descripción, dirección y comuna para resultados más amplios
+    if (textoBusqueda) query = query.or(`nombre.ilike.%${textoBusqueda}%,descripcion.ilike.%${textoBusqueda}%,direccion.ilike.%${textoBusqueda}%,comuna.ilike.%${textoBusqueda}%`)
     query = query.order('created_at', { ascending: false })
     const { data, error } = await query
     if (error) console.error('Error:', error)
@@ -212,7 +226,7 @@ export default function Talleres() {
             placeholder="Buscar taller por nombre..."
             className="input-buscar"
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => { setBusqueda(e.target.value); if (!e.target.value) cargarTalleres('') }}
             onKeyDown={(e) => e.key === 'Enter' && cargarTalleres()}
             style={{flex: 1, padding: '12px 20px', fontSize: '14px', border: '1.5px solid #e5e5e5', borderRadius: '10px', background: '#fafafa', color: '#000', outline: 'none'}}
           />

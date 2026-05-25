@@ -392,14 +392,6 @@ export default function DetalleAuto() {
               </div>
             </div>
 
-            {/* Patente oculta */}
-            <div style={{background: '#f9f9f9', borderRadius: '16px', padding: '16px 20px', border: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '12px'}}>
-              <span style={{fontSize: '20px'}}>🔒</span>
-              <div>
-                <div style={{fontSize: '13px', fontWeight: '600', color: '#333'}}>Patente oculta</div>
-                <div style={{fontSize: '12px', color: '#aaa', marginTop: '2px'}}>Se revela al iniciar contacto verificado</div>
-              </div>
-            </div>
 
           </div>
         </div>

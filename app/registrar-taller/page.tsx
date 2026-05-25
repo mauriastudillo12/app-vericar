@@ -30,7 +30,18 @@ const REGIONES = [
 
 // Comunas principales por región
 const COMUNAS: Record<string, string[]> = {
-  '13': ['Santiago', 'Providencia', 'Las Condes', 'Ñuñoa', 'Maipú', 'La Florida', 'Pudahuel', 'Quilicura', 'Peñalolén', 'La Pintana', 'San Bernardo', 'Puente Alto'],
+  // Región Metropolitana — lista completa de comunas
+  '13': [
+    'Alhué', 'Buin', 'Calera de Tango', 'Cerrillos', 'Cerro Navia', 'Conchalí',
+    'Curacaví', 'El Bosque', 'El Monte', 'Estación Central', 'Huechuraba',
+    'Independencia', 'Isla de Maipo', 'La Cisterna', 'La Florida', 'La Granja',
+    'La Pintana', 'La Reina', 'Las Condes', 'Lo Barnechea', 'Lo Prado',
+    'Macul', 'Maipú', 'María Pinto', 'Melipilla', 'Padre Hurtado', 'Paine',
+    'Peñaflor', 'Peñalolén', 'Pirque', 'Providencia', 'Pudahuel', 'Puente Alto',
+    'Quilicura', 'Recoleta', 'Renca', 'San Bernardo', 'San Joaquín',
+    'San José de Maipo', 'San Pedro', 'San Ramón', 'Santiago', 'Talagante',
+    'Vitacura', 'Ñuñoa',
+  ],
   '05': ['Valparaíso', 'Viña del Mar', 'Quilpué', 'Villa Alemana', 'San Antonio', 'Los Andes', 'La Calera'],
   '08': ['Concepción', 'Talcahuano', 'Hualpén', 'San Pedro de la Paz', 'Coronel', 'Chiguayante'],
   '09': ['Temuco', 'Padre Las Casas', 'Angol', 'Victoria', 'Villarrica', 'Pucón'],
@@ -49,8 +60,9 @@ const COMUNAS: Record<string, string[]> = {
 }
 
 // Servicios disponibles para seleccionar
+// Mecánica general agregada como primera opción (servicio más buscado)
 const SERVICIOS_DISPONIBLES = [
-  'Mantención', 'Frenos', 'Suspensión', 'Electricidad',
+  'Mecánica general', 'Mantención', 'Frenos', 'Suspensión', 'Electricidad',
   'Pintura', 'Diagnóstico', 'Aire acondicionado', 'Transmisión',
   'Motor', 'Carrocería', 'Vidrios', 'Neumáticos',
 ]
@@ -84,15 +96,15 @@ export default function RegistrarTaller() {
   })
 }, [])
 
-  // Estado del formulario
+  // Estado del formulario — teléfono eliminado (contacto se hace por WhatsApp del perfil)
   const [form, setForm] = useState({
     nombre: '',
     descripcion: '',
     direccion: '',
     region: '',
     comuna: '',
-    telefono: '',
-    horario: '',
+    horario_inicio: 8,
+    horario_fin: 19,
     servicios: [] as string[],
   })
 
@@ -130,8 +142,7 @@ export default function RegistrarTaller() {
     if (!form.direccion) { setError('Ingresa la dirección'); return }
     if (!form.region) { setError('Selecciona la región'); return }
     if (!form.comuna) { setError('Selecciona la comuna'); return }
-    if (!form.telefono) { setError('Ingresa el teléfono'); return }
-    if (!form.horario) { setError('Ingresa el horario'); return }
+    // Teléfono eliminado — contacto por WhatsApp del perfil; horario tiene valor por defecto
     if (form.servicios.length === 0) { setError('Selecciona al menos un servicio'); return }
 
     setCargando(true)
@@ -164,8 +175,10 @@ export default function RegistrarTaller() {
           direccion: form.direccion,
           region: form.region,
           comuna: form.comuna,
-          telefono: form.telefono,
-          horario: form.horario,
+          // Horario como texto y como enteros para mostrar en detalle
+          horario: `${form.horario_inicio}:00 - ${form.horario_fin}:00`,
+          horario_inicio: form.horario_inicio,
+          horario_fin: form.horario_fin,
           servicios: form.servicios.join(','),
           foto_url,
           propietario_id: usuario?.id,
@@ -321,15 +334,31 @@ export default function RegistrarTaller() {
             </div>
           </div>
 
-          {/* Teléfono y horario */}
-          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-            <div>
-              <label style={labelStyle}>TELÉFONO</label>
-              <input className="input-pub" style={inputStyle} type="tel" placeholder="+56 9 XXXX XXXX" value={form.telefono} onChange={(e) => updateForm('telefono', e.target.value)} />
-            </div>
-            <div>
-              <label style={labelStyle}>HORARIO</label>
-              <input className="input-pub" style={inputStyle} type="text" placeholder="Ej: Lun-Vie 8:00-18:00" value={form.horario} onChange={(e) => updateForm('horario', e.target.value)} />
+          {/* Horario de atención — selectores de hora igual que en el perfil (se eliminó teléfono) */}
+          <div>
+            <label style={labelStyle}>HORARIO DE ATENCIÓN</label>
+            <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+              <select
+                className="input-pub"
+                value={form.horario_inicio}
+                onChange={(e) => updateForm('horario_inicio', Number(e.target.value))}
+                style={{...selectStyle, flex: 1}}
+              >
+                {Array.from({length: 24}, (_, i) => (
+                  <option key={i} value={i}>{i}:00</option>
+                ))}
+              </select>
+              <span style={{fontSize: '14px', color: '#888', fontWeight: '600', flexShrink: 0}}>a</span>
+              <select
+                className="input-pub"
+                value={form.horario_fin}
+                onChange={(e) => updateForm('horario_fin', Number(e.target.value))}
+                style={{...selectStyle, flex: 1}}
+              >
+                {Array.from({length: 24}, (_, i) => (
+                  <option key={i} value={i}>{i}:00</option>
+                ))}
+              </select>
             </div>
           </div>
 

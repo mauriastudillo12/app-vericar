@@ -166,7 +166,8 @@ export default function DetalleTaller() {
                 {[
                   { icono: '📍', label: 'Dirección', valor: `${taller.direccion}, ${getNombreRegion(taller.region)}` },
                   { icono: '🕐', label: 'Horario', valor: taller.horario },
-                  { icono: '📞', label: 'Teléfono', valor: taller.telefono },
+                  // Solo incluye teléfono si el taller lo tiene registrado
+                  ...(taller.telefono ? [{ icono: '📞', label: 'Teléfono', valor: taller.telefono }] : []),
                 ].map((info) => (
                   <div key={info.label} style={{display: 'flex', gap: '12px', alignItems: 'flex-start'}}>
                     <span style={{fontSize: '18px', flexShrink: 0}}>{info.icono}</span>
@@ -273,8 +274,8 @@ export default function DetalleTaller() {
                   </>
                 )}
 
-                {/* Botón llamar — siempre visible si hay sesión */}
-                {usuario && (
+                {/* Botón llamar — solo visible si el taller tiene teléfono registrado */}
+                {usuario && taller.telefono && (
                   <button
                     className="btn-llamar"
                     onClick={() => window.location.href = `tel:${taller.telefono}`}

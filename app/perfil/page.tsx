@@ -459,6 +459,10 @@ export default function Perfil() {
                               <Link href={`/autos/${auto.id}`} style={{textDecoration: 'none'}}>
                                 <button style={{background: '#fff', color: '#333', border: '1px solid #e5e5e5', padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Ver</button>
                               </Link>
+                              {/* Botón editar — lleva a la página de edición del auto */}
+                              <Link href={`/editar-auto/${auto.id}`} style={{textDecoration: 'none'}}>
+                                <button style={{background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Editar</button>
+                              </Link>
                               <button className="btn-eliminar" onClick={() => eliminarAuto(auto.id)} style={{background: '#fff', color: '#888', border: '1px solid #e5e5e5', padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>
                                 Eliminar
                               </button>
@@ -503,6 +507,10 @@ export default function Perfil() {
                             <div style={{display: 'flex', gap: '8px'}}>
                               <Link href={`/repuestos/${rep.id}`} style={{textDecoration: 'none'}}>
                                 <button style={{background: '#fff', color: '#333', border: '1px solid #e5e5e5', padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Ver</button>
+                              </Link>
+                              {/* Botón editar — lleva a la página de edición del repuesto */}
+                              <Link href={`/editar-repuesto/${rep.id}`} style={{textDecoration: 'none'}}>
+                                <button style={{background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Editar</button>
                               </Link>
                               <button className="btn-eliminar" onClick={() => eliminarRepuesto(rep.id)} style={{background: '#fff', color: '#888', border: '1px solid #e5e5e5', padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>
                                 Eliminar

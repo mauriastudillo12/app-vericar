@@ -33,7 +33,18 @@ const REGIONES = [
 ]
 
 const COMUNAS: Record<string, string[]> = {
-  '13': ['Santiago', 'Providencia', 'Las Condes', 'Ñuñoa', 'Maipú', 'La Florida', 'Pudahuel', 'Quilicura', 'Peñalolén', 'La Pintana', 'San Bernardo', 'Puente Alto'],
+  // Región Metropolitana — lista completa de comunas
+  '13': [
+    'Alhué', 'Buin', 'Calera de Tango', 'Cerrillos', 'Cerro Navia', 'Conchalí',
+    'Curacaví', 'El Bosque', 'El Monte', 'Estación Central', 'Huechuraba',
+    'Independencia', 'Isla de Maipo', 'La Cisterna', 'La Florida', 'La Granja',
+    'La Pintana', 'La Reina', 'Las Condes', 'Lo Barnechea', 'Lo Prado',
+    'Macul', 'Maipú', 'María Pinto', 'Melipilla', 'Padre Hurtado', 'Paine',
+    'Peñaflor', 'Peñalolén', 'Pirque', 'Providencia', 'Pudahuel', 'Puente Alto',
+    'Quilicura', 'Recoleta', 'Renca', 'San Bernardo', 'San Joaquín',
+    'San José de Maipo', 'San Pedro', 'San Ramón', 'Santiago', 'Talagante',
+    'Vitacura', 'Ñuñoa',
+  ],
   '05': ['Valparaíso', 'Viña del Mar', 'Quilpué', 'Villa Alemana', 'San Antonio', 'Los Andes', 'La Calera'],
   '08': ['Concepción', 'Talcahuano', 'Hualpén', 'San Pedro de la Paz', 'Coronel', 'Chiguayante'],
   '09': ['Temuco', 'Padre Las Casas', 'Angol', 'Victoria', 'Villarrica', 'Pucón'],
@@ -50,6 +61,15 @@ const COMUNAS: Record<string, string[]> = {
   '11': ['Coyhaique', 'Puerto Aysén'],
   '12': ['Punta Arenas', 'Puerto Natales', 'Puerto Williams'],
 }
+
+// Marcas de autos — lista ampliada para el filtro del feed
+const MARCAS = [
+  'Alfa Romeo', 'Audi', 'BMW', 'BYD', 'Chery', 'Chevrolet', 'Citroën',
+  'DFSK', 'Dodge', 'Fiat', 'Ford', 'GAC', 'Haval', 'Honda', 'Hyundai',
+  'JAC', 'Jeep', 'Jetour', 'Kia', 'Land Rover', 'Mazda', 'Mercedes-Benz',
+  'MG', 'Mitsubishi', 'Nissan', 'Peugeot', 'RAM', 'Renault', 'Subaru',
+  'Suzuki', 'Toyota', 'Volkswagen', 'Volvo',
+]
 
 function AutosContent() {
   const searchParams = useSearchParams()
@@ -83,7 +103,8 @@ function AutosContent() {
     if (combustible) query = query.eq('combustible', combustible)
     if (transmision) query = query.eq('transmision', transmision)
     if (negociable) query = query.eq('negociable', true)
-    if (textoBusqueda) query = query.ilike('nombre', `%${textoBusqueda}%`)
+    // Busca en nombre, marca, modelo y descripción para resultados más amplios
+    if (textoBusqueda) query = query.or(`nombre.ilike.%${textoBusqueda}%,marca.ilike.%${textoBusqueda}%,modelo.ilike.%${textoBusqueda}%,descripcion.ilike.%${textoBusqueda}%`)
     query = query.order('created_at', { ascending: false })
     const { data, error } = await query
     if (error) console.error('Error:', error)
@@ -142,12 +163,10 @@ function AutosContent() {
 
       <div style={{marginBottom: '18px'}}>
         <label style={labelStyle}>MARCA</label>
+        {/* Filtro de marca con lista ampliada */}
         <select style={selectStyle}>
           <option value="">Todas las marcas</option>
-          <option>Toyota</option><option>Mazda</option><option>Hyundai</option>
-          <option>Kia</option><option>Chevrolet</option><option>Honda</option>
-          <option>Nissan</option><option>Suzuki</option><option>BYD</option>
-          <option>Ford</option><option>Volkswagen</option><option>Mitsubishi</option>
+          {MARCAS.map(m => <option key={m}>{m}</option>)}
         </select>
       </div>
 
@@ -306,7 +325,7 @@ function AutosContent() {
             placeholder="Buscar marca, modelo, año..."
             className="input-buscar"
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => { setBusqueda(e.target.value); if (!e.target.value) cargarAutos('') }}
             onKeyDown={(e) => e.key === 'Enter' && cargarAutos()}
             style={{flex: 1, padding: '12px 20px', fontSize: '14px', border: '1.5px solid #e5e5e5', borderRadius: '10px', background: '#fafafa', color: '#000', outline: 'none'}}
           />
