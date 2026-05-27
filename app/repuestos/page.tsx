@@ -257,7 +257,7 @@ export default function Repuestos() {
             onKeyDown={(e) => e.key === 'Enter' && cargarRepuestos()}
             style={{flex: 1, padding: '12px 20px', fontSize: '14px', border: '1.5px solid #e5e5e5', borderRadius: '10px', background: '#fafafa', color: '#000', outline: 'none'}}
           />
-          <button onClick={cargarRepuestos} style={{background: '#2563eb', color: '#fff', border: 'none', padding: '12px 32px', borderRadius: '10px', fontSize: '14px', fontWeight: '700', cursor: 'pointer'}}>
+          <button onClick={() => cargarRepuestos()} style={{background: '#2563eb', color: '#fff', border: 'none', padding: '12px 32px', borderRadius: '10px', fontSize: '14px', fontWeight: '700', cursor: 'pointer'}}>
             Buscar
           </button>
         </div>
