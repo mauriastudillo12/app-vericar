@@ -1,5 +1,5 @@
 
-// Componente de secciones principales de VeriCar
+// Componente de secciones principales de Unimotor
 // Muestra los 3 servicios que ofrece la plataforma
 // Cada tarjeta lleva a su sección correspondiente
 

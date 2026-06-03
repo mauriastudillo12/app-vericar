@@ -1,4 +1,4 @@
-// Página de login de VeriCar
+// Página de login de Unimotor
 // Conectada a Supabase — verifica usuario y contraseña reales
 
 'use client'
@@ -58,7 +58,7 @@ export default function Login() {
         <div style={{background: '#fff', borderRadius: '20px', padding: '48px 40px', width: '100%', maxWidth: '480px', border: '1px solid #eee', boxShadow: '0 8px 40px rgba(0,0,0,0.08)'}}>
 
           <div style={{textAlign: 'center', marginBottom: '32px'}}>
-            <div style={{fontSize: '22px', fontWeight: '900', letterSpacing: '4px', color: '#000', marginBottom: '8px'}}>VERICAR</div>
+            <div style={{fontSize: '22px', fontWeight: '900', letterSpacing: '4px', color: '#000', marginBottom: '8px'}}>UNIMOTOR</div>
             <h1 style={{fontSize: '1.6rem', fontWeight: '800', color: '#000', marginBottom: '6px'}}>Bienvenido de vuelta</h1>
             <p style={{fontSize: '14px', color: '#888'}}>Ingresa a tu cuenta para continuar</p>
           </div>

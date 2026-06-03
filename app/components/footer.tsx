@@ -1,4 +1,4 @@
-// Footer de VeriCar
+// Footer de Unimotor
 // Aparece en la página de inicio al final
 
 import Link from 'next/link'
@@ -37,7 +37,7 @@ export default function Footer() {
           {/* Logo y descripción */}
           <div className="footer-logo-col">
             <div style={{fontSize: '22px', fontWeight: '900', letterSpacing: '4px', color: '#fff', marginBottom: '16px'}}>
-              VERICAR
+              UNIMOTOR
             </div>
             <p style={{fontSize: '14px', color: '#666', lineHeight: 1.8, maxWidth: '280px'}}>
               El marketplace verificado de autos y repuestos en Chile. Compra y vende con identidad verificada.
@@ -108,7 +108,7 @@ export default function Footer() {
         {/* Fila inferior — copyright */}
         <div className="footer-bottom" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
           <p style={{fontSize: '13px', color: '#444'}}>
-            © {new Date().getFullYear()} VeriCar — Marketplace verificado de Chile
+            © {new Date().getFullYear()} Unimotor — Marketplace verificado de Chile
           </p>
           <div className="footer-links" style={{display: 'flex', gap: '24px'}}>
             {[

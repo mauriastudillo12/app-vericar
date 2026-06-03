@@ -261,12 +261,19 @@ export default function Perfil() {
               ))}
             </div>
 
-            {/* Card contacto WhatsApp */}
-            <div style={{background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #eee'}}>
-              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px'}}>
-                <h3 style={{fontSize: '14px', fontWeight: '700', color: '#000'}}>
-                  📱 Contacto WhatsApp
-                </h3>
+            {/* Card contacto WhatsApp — mejorada con ícono SVG oficial y texto explicativo */}
+            <div style={{background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #eee', overflow: 'hidden'}}>
+
+              {/* Encabezado con ícono SVG oficial de WhatsApp */}
+              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                  <div style={{width: '36px', height: '36px', borderRadius: '10px', background: '#25d366', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0}}>
+                    <svg width="20" height="20" viewBox="0 0 32 32" fill="#fff">
+                      <path d="M16 0C7.163 0 0 7.163 0 16c0 2.833.738 5.49 2.027 7.8L0 32l8.418-2.004A15.93 15.93 0 0016 32c8.837 0 16-7.163 16-16S24.837 0 16 0zm0 29.333a13.27 13.27 0 01-6.784-1.858l-.486-.29-5.001 1.191 1.216-4.87-.317-.5A13.267 13.267 0 012.667 16C2.667 8.636 8.636 2.667 16 2.667S29.333 8.636 29.333 16 23.364 29.333 16 29.333zm7.27-9.906c-.398-.199-2.354-1.162-2.719-1.294-.365-.133-.631-.199-.897.199-.266.398-1.03 1.294-1.263 1.56-.232.265-.465.298-.863.1-.398-.2-1.681-.619-3.202-1.977-1.184-1.056-1.983-2.36-2.215-2.758-.232-.398-.025-.613.174-.811.179-.178.398-.465.597-.697.2-.232.266-.398.398-.664.133-.265.067-.497-.033-.697-.1-.199-.897-2.162-1.229-2.96-.324-.778-.652-.672-.897-.685l-.764-.013c-.265 0-.697.1-1.063.497-.365.398-1.395 1.362-1.395 3.325s1.428 3.857 1.627 4.123c.2.265 2.81 4.29 6.808 6.017.951.41 1.693.655 2.272.839.954.304 1.823.261 2.51.158.765-.114 2.354-.962 2.686-1.89.332-.929.332-1.726.232-1.89-.099-.165-.365-.265-.763-.464z"/>
+                    </svg>
+                  </div>
+                  <h3 style={{fontSize: '14px', fontWeight: '700', color: '#000'}}>Contacto WhatsApp</h3>
+                </div>
                 {/* Botón editar — solo visible en modo vista cuando ya hay datos */}
                 {perfil?.whatsapp && !editandoContacto && (
                   <button
@@ -277,6 +284,11 @@ export default function Perfil() {
                   </button>
                 )}
               </div>
+
+              {/* Texto explicativo */}
+              <p style={{fontSize: '12px', color: '#888', lineHeight: 1.6, marginBottom: '16px', background: '#f9f9f9', borderRadius: '8px', padding: '10px 12px'}}>
+                Este número será usado para que compradores interesados en tus publicaciones te contacten directamente por WhatsApp.
+              </p>
 
               {/* Modo vista — muestra datos guardados */}
               {perfil?.whatsapp && !editandoContacto ? (

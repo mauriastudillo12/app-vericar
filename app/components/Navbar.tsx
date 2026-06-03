@@ -1,4 +1,4 @@
-// Navbar de VeriCar
+// Navbar de Unimotor
 // Dos elementos con sesión: botón Publicar y avatar con menú desplegable
 // Link al panel admin solo visible para administradores
 
@@ -123,7 +123,7 @@ export default function Navbar({ activa }: { activa?: string }) {
           fontSize: '20px', fontWeight: '900',
           letterSpacing: '3px', color: '#000', textDecoration: 'none',
         }}>
-          VERICAR
+          UNIMOTOR
         </Link>
 
         {/* Botones según sesión */}

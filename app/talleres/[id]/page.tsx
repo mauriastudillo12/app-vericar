@@ -72,7 +72,7 @@ export default function DetalleTaller() {
   const contactarWhatsApp = () => {
     const numero = `56${propietario.whatsapp}`
     const mensaje = encodeURIComponent(
-      `Hola, vengo de la app VeriCar. Me interesa contactar el taller: ${taller.nombre}, ubicado en ${taller.comuna}. ¿Están disponibles?`
+      `Hola, vengo de la app Unimotor. Me interesa contactar el taller: ${taller.nombre}, ubicado en ${taller.comuna}. ¿Están disponibles?`
     )
     window.open(`https://wa.me/${numero}?text=${mensaje}`, '_blank')
   }

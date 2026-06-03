@@ -1,4 +1,4 @@
-// Panel de administración de VeriCar
+// Panel de administración de Unimotor
 // Solo accesible para usuarios con es_admin = true
 // Gestiona usuarios, publicaciones, destacados y verificaciones de identidad
 // Verificaciones: busca verificacion_pendiente = true, aprueba/rechaza manualmente
@@ -211,7 +211,7 @@ export default function Admin() {
             Panel de administración
           </h1>
           <p style={{fontSize: '14px', color: '#888'}}>
-            Gestiona publicaciones, destacados, verificaciones y usuarios de VeriCar
+            Gestiona publicaciones, destacados, verificaciones y usuarios de Unimotor
           </p>
         </div>
 

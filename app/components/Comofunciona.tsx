@@ -1,5 +1,5 @@
 // app/components/ComoFunciona.tsx
-// Sección "Cómo funciona VeriCar"
+// Sección "Cómo funciona Unimotor"
 // Explica el proceso en 4 pasos simples incluyendo talleres
 // Va entre Features y los autos destacados
 // Botones siempre visibles — si no está logueado mandan al login
@@ -41,15 +41,15 @@ export default function ComoFunciona() {
             Sin complicaciones
           </p>
           <h2 style={{fontSize: '2.4rem', fontWeight: '900', color: '#000', marginBottom: '16px', lineHeight: 1.2}}>
-            ¿Cómo funciona VeriCar?
+            ¿Cómo funciona Unimotor?
           </h2>
           <p style={{fontSize: '16px', color: '#888', maxWidth: '520px', margin: '0 auto', lineHeight: 1.7}}>
             Compra, vende autos, encuentra repuestos y talleres de confianza — todo en un solo lugar verificado
           </p>
         </div>
 
-        {/* Grid de 4 pasos */}
-        <div className="grid-responsive" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '56px'}}>
+        {/* Grid de 3 pasos */}
+        <div className="grid-responsive" style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '56px'}}>
           {[
             {
               numero: '01', icono: '🔐',
@@ -68,12 +68,6 @@ export default function ComoFunciona() {
               titulo: 'Encuentra talleres verificados',
               descripcion: 'Busca talleres mecánicos de confianza cerca de ti. Filtra por servicio, región y comuna. Contacta directo sin intermediarios.',
               color: '#fefce8', colorBorde: '#fde68a',
-            },
-            {
-              numero: '04', icono: '💬',
-              titulo: 'Contacta con seguridad',
-              descripcion: 'Chatea directamente con vendedores y talleres verificados. La patente se revela solo cuando ambas partes están listas.',
-              color: '#fdf4ff', colorBorde: '#e9d5ff',
             },
           ].map((paso) => (
             <div key={paso.numero} className="paso-card" style={{
@@ -116,7 +110,7 @@ export default function ComoFunciona() {
                 ¿Listo para comprar o vender?
               </h3>
               <p style={{fontSize: '14px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6}}>
-                Únete a miles de chilenos que ya usan VeriCar para comprar y vender autos con total seguridad.
+                Únete a miles de chilenos que ya usan Unimotor para comprar y vender autos con total seguridad.
               </p>
             </div>
             <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>

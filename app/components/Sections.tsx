@@ -1,5 +1,5 @@
 // Barra de tabs de navegación principal
-// Permite navegar entre las 4 secciones de VeriCar
+// Permite navegar entre las 4 secciones de Unimotor
 // Link de Next.js para navegación rápida sin recargar
 
 import Link from 'next/link'

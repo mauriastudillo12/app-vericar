@@ -1,6 +1,6 @@
 {
-  "name": "VeriCar",
-  "short_name": "VeriCar",
+  "name": "Unimotor",
+  "short_name": "Unimotor",
   "description": "Marketplace verificado de autos, talleres y repuestos en Chile",
   "start_url": "/",
   "display": "standalone",

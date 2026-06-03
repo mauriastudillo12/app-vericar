@@ -1,4 +1,4 @@
-// Página principal de VeriCar
+// Página principal de Unimotor
 // Hero con imagen, animaciones, ola y parallax
 // Buscador que redirige al feed de autos con el término de búsqueda
 
@@ -65,8 +65,7 @@ export default function Home() {
         .hero-title  { animation: fadeUp 0.7s ease forwards; opacity: 0; animation-delay: 0.3s; }
         .hero-sub    { animation: fadeUp 0.7s ease forwards; opacity: 0; animation-delay: 0.5s; }
         .hero-search { animation: fadeUp 0.7s ease forwards; opacity: 0; animation-delay: 0.7s; }
-        .hero-stats  { animation: fadeUp 0.7s ease forwards; opacity: 0; animation-delay: 0.9s; }
-        .btn-buscar { transition: background 0.2s, transform 0.15s; }
+.btn-buscar { transition: background 0.2s, transform 0.15s; }
         .btn-buscar:hover { background: #1d4ed8 !important; transform: scale(1.03); }
         .wave-container {
           position: absolute;
@@ -157,7 +156,7 @@ export default function Home() {
   lineHeight: 1,
   textShadow: '0 4px 24px rgba(0,0,0,0.5)',
 }}>
-  VERICAR
+  UNIMOTOR
 </h1>
 
           {/* Subtítulo */}
@@ -211,20 +210,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Stats */}
-          <div className="hero-stats hero-stats-container" style={{ display: 'flex', justifyContent: 'center', gap: '48px' }}>
-            {[
-              { num: '1.200+', label: 'Autos publicados' },
-              { num: '100%', label: 'Vendedores verificados' },
-              { num: '4.9★', label: 'Calificación promedio' },
-            ].map((stat) => (
-              <div key={stat.num} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#fff' }}>{stat.num}</div>
-                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '4px', letterSpacing: '0.5px' }}>{stat.label}</div>
-              </div>
-            ))}
-          </div>
-
         </div>
 
         {/* Ola animada en la parte baja del hero */}
@@ -244,7 +229,7 @@ export default function Home() {
 
       </div>
 
-      {/* Sección de características — 4 pilares de VeriCar */}
+      {/* Sección de características — 4 pilares de Unimotor */}
       <Features />
 
       {/* Cómo funciona — 3 pasos explicados */}

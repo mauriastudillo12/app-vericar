@@ -185,7 +185,7 @@ function VerificarContent() {
             </p>
             <div style={{background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px 16px', marginBottom: '24px'}}>
               <p style={{fontSize: '13px', color: '#92400e', fontWeight: '600'}}>
-                ⚠ Tu cuenta será verificada manualmente por el equipo de VeriCar
+                ⚠ Tu cuenta será verificada manualmente por el equipo de Unimotor
               </p>
             </div>
             <button
@@ -217,7 +217,7 @@ function VerificarContent() {
           <h1 style={{fontSize: '2rem', fontWeight: '800', color: '#000', marginBottom: '8px'}}>Verificar identidad</h1>
           <p style={{fontSize: '14px', color: '#888', lineHeight: 1.7}}>
             {origen
-              ? 'Para continuar en VeriCar necesitas verificar tu identidad.'
+              ? 'Para continuar en Unimotor necesitas verificar tu identidad.'
               : 'Para garantizar la seguridad de todos los usuarios, necesitamos verificar tu identidad.'}
           </p>
         </div>
@@ -227,7 +227,7 @@ function VerificarContent() {
             <span style={{fontSize: '20px', flexShrink: 0}}>⚠️</span>
             <div>
               <div style={{fontSize: '13px', fontWeight: '700', color: '#92400e', marginBottom: '4px'}}>Verificación requerida</div>
-              <div style={{fontSize: '12px', color: '#b45309', lineHeight: 1.6}}>Solo usuarios verificados pueden usar todas las funciones de VeriCar.</div>
+              <div style={{fontSize: '12px', color: '#b45309', lineHeight: 1.6}}>Solo usuarios verificados pueden usar todas las funciones de Unimotor.</div>
             </div>
           </div>
         )}
@@ -293,7 +293,7 @@ function VerificarContent() {
             </p>
             {[
               { icono: '1️⃣', texto: 'Ingresas tu RUT y lo validamos al instante' },
-              { icono: '2️⃣', texto: 'El equipo de VeriCar revisa tu solicitud en 24 hrs' },
+              { icono: '2️⃣', texto: 'El equipo de Unimotor revisa tu solicitud en 24 hrs' },
               { icono: '3️⃣', texto: 'Recibes confirmación y puedes usar todas las funciones' },
             ].map((paso) => (
               <div key={paso.icono} style={{display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '8px'}}>
@@ -328,7 +328,7 @@ function VerificarContent() {
           <p style={{fontSize: '12px', color: '#aaa', textAlign: 'center', lineHeight: 1.6}}>
             Al enviar confirmas que el RUT es tuyo y aceptas los{' '}
             <a href="/terminos" style={{color: '#2563eb', textDecoration: 'none'}}>Términos y Condiciones</a>{' '}
-            de VeriCar.
+            de Unimotor.
           </p>
         </div>
       </div>

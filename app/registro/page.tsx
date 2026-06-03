@@ -1,5 +1,5 @@
 // app/registro/page.tsx
-// Página de registro de VeriCar
+// Página de registro de Unimotor
 // Conectada a Supabase — guarda usuarios reales en la base de datos
 // Solo registro por correo + contraseña
 
@@ -103,9 +103,9 @@ export default function Registro() {
         <div style={{background: '#fff', borderRadius: '20px', padding: '48px 40px', width: '100%', maxWidth: '480px', border: '1px solid #eee', boxShadow: '0 8px 40px rgba(0,0,0,0.08)'}}>
 
           <div style={{textAlign: 'center', marginBottom: '32px'}}>
-            <div style={{fontSize: '22px', fontWeight: '900', letterSpacing: '4px', color: '#000', marginBottom: '8px'}}>VERICAR</div>
+            <div style={{fontSize: '22px', fontWeight: '900', letterSpacing: '4px', color: '#000', marginBottom: '8px'}}>UNIMOTOR</div>
             <h1 style={{fontSize: '1.6rem', fontWeight: '800', color: '#000', marginBottom: '6px'}}>Crea tu cuenta</h1>
-            <p style={{fontSize: '14px', color: '#888'}}>Únete a VeriCar gratis</p>
+            <p style={{fontSize: '14px', color: '#888'}}>Únete a Unimotor gratis</p>
           </div>
 
           <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>

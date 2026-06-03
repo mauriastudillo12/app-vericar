@@ -148,7 +148,7 @@ export default function DetalleAuto() {
   const contactarWhatsApp = () => {
     const numero = `56${vendedor.whatsapp}`
     const mensaje = encodeURIComponent(
-      `Hola, vengo de la app VeriCar. Me interesa tu publicación: ${auto.nombre} (${auto.año}, ${auto.km?.toLocaleString('es-CL')} km). ¿Está disponible?`
+      `Hola, vengo de la app Unimotor. Me interesa tu publicación: ${auto.nombre} (${auto.año}, ${auto.km?.toLocaleString('es-CL')} km). ¿Está disponible?`
     )
     window.open(`https://wa.me/${numero}?text=${mensaje}`, '_blank')
   }

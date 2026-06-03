@@ -13,14 +13,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VeriCar — Marketplace verificado de autos en Chile",
+  title: "Unimotor — Marketplace verificado de autos en Chile",
   description: "Compra y vende autos con identidad verificada. Sin estafas, sin fantasmas, sin riesgos.",
   manifest: "/manifest.json",
   themeColor: "#2563eb",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "VeriCar",
+    title: "Unimotor",
   },
   icons: {
     apple: "/icon-512.png",
@@ -43,7 +43,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-512.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="VeriCar" />
+        <meta name="apple-mobile-web-app-title" content="Unimotor" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="min-h-full flex flex-col">{children}</body>
