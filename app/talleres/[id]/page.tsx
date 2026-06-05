@@ -27,11 +27,14 @@ export default function DetalleTaller() {
   const [cargando, setCargando] = useState(true)
   const [usuario, setUsuario] = useState<any>(null)
   const [perfilVerificado, setPerfilVerificado] = useState(false)
+  const [esFavorito, setEsFavorito] = useState(false)
+  const [guardandoFavorito, setGuardandoFavorito] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setUsuario(session?.user ?? null)
       if (session?.user) {
+        verificarFavorito(session.user.id)
         const { data: perfil } = await supabase
           .from('perfiles')
           .select('verificado')
@@ -58,6 +61,26 @@ export default function DetalleTaller() {
 
     cargarTaller()
   }, [params.id])
+
+  const verificarFavorito = async (userId: string) => {
+    const { data } = await supabase
+      .from('favoritos').select('id')
+      .eq('usuario_id', userId).eq('taller_id', params.id).maybeSingle()
+    setEsFavorito(!!data)
+  }
+
+  const toggleFavorito = async () => {
+    if (!usuario) { router.push('/login'); return }
+    setGuardandoFavorito(true)
+    if (esFavorito) {
+      await supabase.from('favoritos').delete().eq('usuario_id', usuario.id).eq('taller_id', taller.id)
+      setEsFavorito(false)
+    } else {
+      await supabase.from('favoritos').insert({ usuario_id: usuario.id, taller_id: taller.id })
+      setEsFavorito(true)
+    }
+    setGuardandoFavorito(false)
+  }
 
   // Verificar si la hora actual está dentro del horario del propietario
   const dentroDeHorario = () => {
@@ -288,6 +311,28 @@ export default function DetalleTaller() {
                   >
                     📞 Llamar al taller
                   </button>
+                )}
+
+                {/* Botón favorito — visible para todos los usuarios con sesión */}
+                {usuario && (
+                  <div style={{marginTop: '2px'}}>
+                    <button
+                      onClick={toggleFavorito}
+                      disabled={guardandoFavorito}
+                      style={{
+                        width: '100%',
+                        background: esFavorito ? '#eff6ff' : '#fff',
+                        color: esFavorito ? '#2563eb' : '#333',
+                        border: `1.5px solid ${esFavorito ? '#2563eb' : '#e5e5e5'}`,
+                        padding: '14px', borderRadius: '10px',
+                        fontSize: '15px', fontWeight: '600', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {esFavorito ? '❤️ Guardado en favoritos' : '🤍 Guardar en favoritos'}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

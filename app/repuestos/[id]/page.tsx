@@ -18,6 +18,8 @@ export default function DetalleRepuesto() {
   const [cargando, setCargando] = useState(true)
   const [usuario, setUsuario] = useState<any>(null)
   const [perfilVerificado, setPerfilVerificado] = useState(false)
+  const [esFavorito, setEsFavorito] = useState(false)
+  const [guardandoFavorito, setGuardandoFavorito] = useState(false)
 
   useEffect(() => {
 
@@ -25,6 +27,7 @@ export default function DetalleRepuesto() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setUsuario(session?.user ?? null)
       if (session?.user) {
+        verificarFavorito(session.user.id)
         const { data: perfil } = await supabase
           .from('perfiles')
           .select('verificado')
@@ -72,6 +75,26 @@ export default function DetalleRepuesto() {
     const inicio = vendedor?.horario_inicio ?? 9
     const fin = vendedor?.horario_fin ?? 20
     return horaActual >= inicio && horaActual < fin
+  }
+
+  const verificarFavorito = async (userId: string) => {
+    const { data } = await supabase
+      .from('favoritos').select('id')
+      .eq('usuario_id', userId).eq('repuesto_id', params.id).maybeSingle()
+    setEsFavorito(!!data)
+  }
+
+  const toggleFavorito = async () => {
+    if (!usuario) { router.push('/login'); return }
+    setGuardandoFavorito(true)
+    if (esFavorito) {
+      await supabase.from('favoritos').delete().eq('usuario_id', usuario.id).eq('repuesto_id', repuesto.id)
+      setEsFavorito(false)
+    } else {
+      await supabase.from('favoritos').insert({ usuario_id: usuario.id, repuesto_id: repuesto.id })
+      setEsFavorito(true)
+    }
+    setGuardandoFavorito(false)
   }
 
   const contactarWhatsApp = () => {
@@ -323,6 +346,28 @@ export default function DetalleRepuesto() {
                       ⏰ Fuera de horario · Atención de {vendedor.horario_inicio}:00 a {vendedor.horario_fin}:00
                     </p>
                   )}
+                </div>
+              )}
+
+              {/* Botón favorito — visible para todos los usuarios con sesión */}
+              {usuario && (
+                <div style={{marginTop: '10px'}}>
+                  <button
+                    onClick={toggleFavorito}
+                    disabled={guardandoFavorito}
+                    style={{
+                      width: '100%',
+                      background: esFavorito ? '#eff6ff' : '#fff',
+                      color: esFavorito ? '#2563eb' : '#333',
+                      border: `1.5px solid ${esFavorito ? '#2563eb' : '#e5e5e5'}`,
+                      padding: '14px', borderRadius: '10px',
+                      fontSize: '15px', fontWeight: '600', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {esFavorito ? '❤️ Guardado en favoritos' : '🤍 Guardar en favoritos'}
+                  </button>
                 </div>
               )}
             </div>

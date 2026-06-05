@@ -65,7 +65,7 @@ export default function Home() {
         .hero-title  { animation: fadeUp 0.7s ease forwards; opacity: 0; animation-delay: 0.3s; }
         .hero-sub    { animation: fadeUp 0.7s ease forwards; opacity: 0; animation-delay: 0.5s; }
         .hero-search { animation: fadeUp 0.7s ease forwards; opacity: 0; animation-delay: 0.7s; }
-.btn-buscar { transition: background 0.2s, transform 0.15s; }
+        .btn-buscar { transition: background 0.2s, transform 0.15s; }
         .btn-buscar:hover { background: #1d4ed8 !important; transform: scale(1.03); }
         .wave-container {
           position: absolute;
@@ -79,6 +79,12 @@ export default function Home() {
           display: block;
           width: 200%;
           animation: wave 8s linear infinite;
+        }
+        @media (max-width: 768px) {
+          .hero-title-text { font-size: 3rem !important; letter-spacing: 4px !important; }
+          .hero-sub { font-size: 0.9rem !important; }
+          .hero-search { padding: 0 16px !important; }
+          .hero-stats-container { gap: 24px !important; flex-wrap: wrap !important; }
         }
       `}</style>
 
@@ -128,7 +134,7 @@ export default function Home() {
           padding: '0 24px',
           width: '100%',
           maxWidth: '680px',
-          marginTop: '140px',
+          marginTop: 'clamp(100px, 20vh, 160px)',
         }}>
 
           {/* Badge superior */}
