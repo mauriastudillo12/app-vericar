@@ -63,7 +63,7 @@ export default function Perfil() {
       setRepuestos(repuestosData || [])
 
       const { data: favoritosData } = await supabase
-        .from('favoritos').select('*, autos(*)').eq('usuario_id', session.user.id).order('created_at', { ascending: false })
+        .from('favoritos').select('*, autos(*), repuestos(*), talleres(*)').eq('usuario_id', session.user.id).order('created_at', { ascending: false })
       setFavoritos(favoritosData || [])
       setCargando(false)
     }
@@ -114,9 +114,19 @@ export default function Perfil() {
     if (!error) setRepuestos(prev => prev.filter(r => r.id !== repuestoId))
   }
 
-  const quitarFavorito = async (autoId: string) => {
+  const quitarFavoritoAuto = async (autoId: string) => {
     await supabase.from('favoritos').delete().eq('usuario_id', usuario.id).eq('auto_id', autoId)
     setFavoritos(prev => prev.filter(f => f.auto_id !== autoId))
+  }
+
+  const quitarFavoritoRepuesto = async (repuestoId: string) => {
+    await supabase.from('favoritos').delete().eq('usuario_id', usuario.id).eq('repuesto_id', repuestoId)
+    setFavoritos(prev => prev.filter(f => f.repuesto_id !== repuestoId))
+  }
+
+  const quitarFavoritoTaller = async (tallerId: string) => {
+    await supabase.from('favoritos').delete().eq('usuario_id', usuario.id).eq('taller_id', tallerId)
+    setFavoritos(prev => prev.filter(f => f.taller_id !== tallerId))
   }
 
   const formatPrecio = (precio: number) => '$' + precio.toLocaleString('es-CL')
@@ -543,44 +553,118 @@ export default function Perfil() {
                 <div style={{background: '#fff', borderRadius: '16px', padding: '48px', border: '1px solid #eee', textAlign: 'center'}}>
                   <div style={{fontSize: '40px', marginBottom: '12px'}}>❤️</div>
                   <p style={{fontSize: '16px', fontWeight: '600', color: '#333', marginBottom: '6px'}}>No tienes favoritos aún</p>
-                  <p style={{fontSize: '14px', color: '#888'}}>Guarda autos desde el detalle de cada publicación</p>
+                  <p style={{fontSize: '14px', color: '#888'}}>Guarda autos, repuestos y talleres desde el detalle de cada publicación</p>
                 </div>
               ) : (
                 <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
                   {favoritos.map((fav) => {
-                    const auto = fav.autos
-                    if (!auto) return null
-                    return (
-                      <div key={fav.id} className="pub-card" style={{background: '#fff', borderRadius: '16px', border: '1px solid #eee', overflow: 'hidden'}}>
-                        <div className="pub-card-inner" style={{display: 'flex'}}>
-                          <div className="pub-card-img" style={{width: '160px', minWidth: '160px', height: '120px', background: 'linear-gradient(135deg, #e8e8e8 0%, #d5d5d5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'}}>
-                            {(() => {
-                              const fotosArray = typeof auto.fotos === 'string' && auto.fotos ? JSON.parse(auto.fotos) : auto.fotos
-                              return fotosArray && fotosArray.length > 0
-                                ? <img src={fotosArray[0]} alt={auto.nombre} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
-                                : <span style={{fontSize: '36px'}}>🚗</span>
-                            })()}
-                          </div>
-                          <div style={{padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}}>
-                            <div>
-                              <div style={{fontSize: '15px', fontWeight: '700', color: '#000', marginBottom: '4px'}}>{auto.nombre}</div>
-                              <div style={{fontSize: '12px', color: '#888'}}>{auto.km?.toLocaleString('es-CL')} km · {auto.transmision} · {auto.combustible}</div>
+                    // CASO: favorito de auto
+                    if (fav.autos) {
+                      const auto = fav.autos
+                      return (
+                        <div key={fav.id} className="pub-card" style={{background: '#fff', borderRadius: '16px', border: '1px solid #eee', overflow: 'hidden'}}>
+                          <div className="pub-card-inner" style={{display: 'flex'}}>
+                            <div className="pub-card-img" style={{width: '160px', minWidth: '160px', height: '120px', background: 'linear-gradient(135deg, #e8e8e8 0%, #d5d5d5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'}}>
+                              {(() => {
+                                const fotosArray = typeof auto.fotos === 'string' && auto.fotos ? JSON.parse(auto.fotos) : auto.fotos
+                                return fotosArray && fotosArray.length > 0
+                                  ? <img src={fotosArray[0]} alt={auto.nombre} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+                                  : <span style={{fontSize: '36px'}}>🚗</span>
+                              })()}
                             </div>
-                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px'}}>
-                              <div style={{fontSize: '18px', fontWeight: '800', color: '#000'}}>{formatPrecio(auto.precio)}</div>
-                              <div style={{display: 'flex', gap: '8px'}}>
-                                <Link href={`/autos/${auto.id}`} style={{textDecoration: 'none'}}>
-                                  <button style={{background: '#fff', color: '#333', border: '1px solid #e5e5e5', padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Ver</button>
-                                </Link>
-                                <button className="btn-eliminar" onClick={() => quitarFavorito(auto.id)} style={{background: '#fff', color: '#888', border: '1px solid #e5e5e5', padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>
-                                  Quitar
-                                </button>
+                            <div style={{padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}}>
+                              <div>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px'}}>
+                                  <span style={{fontSize: '10px', fontWeight: '700', background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: '4px'}}>AUTO</span>
+                                  <div style={{fontSize: '15px', fontWeight: '700', color: '#000'}}>{auto.nombre}</div>
+                                </div>
+                                <div style={{fontSize: '12px', color: '#888'}}>{auto.km?.toLocaleString('es-CL')} km · {auto.transmision} · {auto.combustible}</div>
+                              </div>
+                              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px'}}>
+                                <div style={{fontSize: '18px', fontWeight: '800', color: '#000'}}>{formatPrecio(auto.precio)}</div>
+                                <div style={{display: 'flex', gap: '8px'}}>
+                                  <Link href={`/autos/${auto.id}`} style={{textDecoration: 'none'}}>
+                                    <button style={{background: '#fff', color: '#333', border: '1px solid #e5e5e5', padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Ver</button>
+                                  </Link>
+                                  <button className="btn-eliminar" onClick={() => quitarFavoritoAuto(auto.id)} style={{background: '#fff', color: '#888', border: '1px solid #e5e5e5', padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Quitar</button>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    )
+                      )
+                    }
+
+                    // CASO: favorito de repuesto
+                    if (fav.repuestos) {
+                      const rep = fav.repuestos
+                      return (
+                        <div key={fav.id} className="pub-card" style={{background: '#fff', borderRadius: '16px', border: '1px solid #eee', overflow: 'hidden'}}>
+                          <div className="pub-card-inner" style={{display: 'flex'}}>
+                            <div className="pub-card-img" style={{width: '160px', minWidth: '160px', height: '120px', background: 'linear-gradient(135deg, #e8e8e8 0%, #d5d5d5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'}}>
+                              {(() => {
+                                const fotosArray = typeof rep.fotos === 'string' && rep.fotos ? JSON.parse(rep.fotos) : rep.fotos
+                                return fotosArray && fotosArray.length > 0
+                                  ? <img src={fotosArray[0]} alt={rep.nombre} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+                                  : <span style={{fontSize: '36px'}}>🔧</span>
+                              })()}
+                            </div>
+                            <div style={{padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}}>
+                              <div>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px'}}>
+                                  <span style={{fontSize: '10px', fontWeight: '700', background: '#f0fdf4', color: '#16a34a', padding: '2px 8px', borderRadius: '4px'}}>REPUESTO</span>
+                                  <div style={{fontSize: '15px', fontWeight: '700', color: '#000'}}>{rep.nombre}</div>
+                                </div>
+                                <div style={{fontSize: '12px', color: '#888'}}>{rep.categoria} · {rep.marca_compatible} {rep.modelo_compatible}</div>
+                              </div>
+                              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px'}}>
+                                <div style={{fontSize: '18px', fontWeight: '800', color: '#000'}}>{formatPrecio(rep.precio)}</div>
+                                <div style={{display: 'flex', gap: '8px'}}>
+                                  <Link href={`/repuestos/${rep.id}`} style={{textDecoration: 'none'}}>
+                                    <button style={{background: '#fff', color: '#333', border: '1px solid #e5e5e5', padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Ver</button>
+                                  </Link>
+                                  <button className="btn-eliminar" onClick={() => quitarFavoritoRepuesto(rep.id)} style={{background: '#fff', color: '#888', border: '1px solid #e5e5e5', padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Quitar</button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    }
+
+                    // CASO: favorito de taller
+                    if (fav.talleres) {
+                      const taller = fav.talleres
+                      return (
+                        <div key={fav.id} className="pub-card" style={{background: '#fff', borderRadius: '16px', border: '1px solid #eee', overflow: 'hidden'}}>
+                          <div className="pub-card-inner" style={{display: 'flex'}}>
+                            <div className="pub-card-img" style={{width: '160px', minWidth: '160px', height: '120px', background: 'linear-gradient(135deg, #e8e8e8 0%, #d5d5d5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'}}>
+                              {taller.foto_url
+                                ? <img src={taller.foto_url} alt={taller.nombre} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+                                : <span style={{fontSize: '36px'}}>🏪</span>
+                              }
+                            </div>
+                            <div style={{padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}}>
+                              <div>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px'}}>
+                                  <span style={{fontSize: '10px', fontWeight: '700', background: '#fef3c7', color: '#d97706', padding: '2px 8px', borderRadius: '4px'}}>TALLER</span>
+                                  <div style={{fontSize: '15px', fontWeight: '700', color: '#000'}}>{taller.nombre}</div>
+                                </div>
+                                <div style={{fontSize: '12px', color: '#888'}}>📍 {taller.comuna} · {taller.servicios?.split(',')[0]?.trim()}</div>
+                              </div>
+                              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px'}}>
+                                <Link href={`/talleres/${taller.id}`} style={{textDecoration: 'none'}}>
+                                  <button style={{background: '#fff', color: '#333', border: '1px solid #e5e5e5', padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Ver</button>
+                                </Link>
+                                <button className="btn-eliminar" onClick={() => quitarFavoritoTaller(taller.id)} style={{background: '#fff', color: '#888', border: '1px solid #e5e5e5', padding: '6px 14px', borderRadius: '7px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Quitar</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    }
+
+                    return null
                   })}
                 </div>
               )

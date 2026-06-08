@@ -29,6 +29,11 @@ export default function DetalleTaller() {
   const [perfilVerificado, setPerfilVerificado] = useState(false)
   const [esFavorito, setEsFavorito] = useState(false)
   const [guardandoFavorito, setGuardandoFavorito] = useState(false)
+  const [calificacion, setCalificacion] = useState<number>(0)
+  const [miCalificacion, setMiCalificacion] = useState<number | null>(null)
+  const [promedioCalif, setPromedioCalif] = useState<number>(0)
+  const [totalCalif, setTotalCalif] = useState<number>(0)
+  const [enviandoCalif, setEnviandoCalif] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -41,7 +46,9 @@ export default function DetalleTaller() {
           .eq('id', session.user.id)
           .single()
         setPerfilVerificado(perfil?.verificado || false)
+        cargarMiCalificacion(session.user.id)
       }
+      cargarCalificaciones()
     })
 
     const cargarTaller = async () => {
@@ -80,6 +87,46 @@ export default function DetalleTaller() {
       setEsFavorito(true)
     }
     setGuardandoFavorito(false)
+  }
+
+  const cargarCalificaciones = async () => {
+    const { data } = await supabase
+      .from('calificaciones_talleres')
+      .select('puntaje')
+      .eq('taller_id', params.id)
+    if (data && data.length > 0) {
+      const total = data.length
+      const promedio = data.reduce((acc: number, c: any) => acc + c.puntaje, 0) / total
+      setPromedioCalif(Math.round(promedio * 10) / 10)
+      setTotalCalif(total)
+    }
+  }
+
+  const cargarMiCalificacion = async (userId: string) => {
+    const { data } = await supabase
+      .from('calificaciones_talleres')
+      .select('puntaje')
+      .eq('taller_id', params.id)
+      .eq('usuario_id', userId)
+      .maybeSingle()
+    if (data) {
+      setMiCalificacion(data.puntaje)
+      setCalificacion(data.puntaje)
+    }
+  }
+
+  const enviarCalificacion = async (puntaje: number) => {
+    if (!usuario || !perfilVerificado) return
+    setEnviandoCalif(true)
+    setCalificacion(puntaje)
+    await supabase.from('calificaciones_talleres').upsert({
+      taller_id: taller.id,
+      usuario_id: usuario.id,
+      puntaje,
+    }, { onConflict: 'taller_id,usuario_id' })
+    setMiCalificacion(puntaje)
+    await cargarCalificaciones()
+    setEnviandoCalif(false)
   }
 
   // Verificar si la hora actual está dentro del horario del propietario
@@ -201,6 +248,53 @@ export default function DetalleTaller() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Calificaciones */}
+            <div style={{background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #eee'}}>
+              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px'}}>
+                <h3 style={{fontSize: '16px', fontWeight: '700', color: '#000', margin: 0}}>Calificaciones</h3>
+                <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+                  <span style={{fontSize: '22px', fontWeight: '900', color: '#000'}}>{promedioCalif > 0 ? promedioCalif : '—'}</span>
+                  <span style={{fontSize: '18px'}}>⭐</span>
+                  <span style={{fontSize: '13px', color: '#888'}}>({totalCalif} {totalCalif === 1 ? 'calificación' : 'calificaciones'})</span>
+                </div>
+              </div>
+
+              {usuario && perfilVerificado && (
+                <div>
+                  <p style={{fontSize: '13px', color: '#888', marginBottom: '10px'}}>
+                    {miCalificacion ? `Tu calificación: ${miCalificacion} ⭐ — puedes cambiarla` : 'Califica este taller:'}
+                  </p>
+                  <div style={{display: 'flex', gap: '8px'}}>
+                    {[1,2,3,4,5].map((estrella) => (
+                      <button
+                        key={estrella}
+                        onClick={() => enviarCalificacion(estrella)}
+                        disabled={enviandoCalif}
+                        style={{
+                          fontSize: '28px', background: 'none', border: 'none',
+                          cursor: enviandoCalif ? 'not-allowed' : 'pointer',
+                          opacity: enviandoCalif ? 0.5 : 1,
+                          transform: calificacion >= estrella ? 'scale(1.2)' : 'scale(1)',
+                          transition: 'transform 0.15s',
+                          filter: calificacion >= estrella ? 'none' : 'grayscale(1)',
+                        }}
+                      >
+                        ⭐
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {usuario && !perfilVerificado && (
+                <p style={{fontSize: '13px', color: '#888'}}>Solo usuarios verificados pueden calificar talleres.</p>
+              )}
+
+              {!usuario && (
+                <p style={{fontSize: '13px', color: '#888'}}>Inicia sesión para calificar este taller.</p>
+              )}
             </div>
           </div>
 

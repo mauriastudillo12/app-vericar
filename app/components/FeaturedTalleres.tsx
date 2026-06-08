@@ -11,6 +11,7 @@ import { getNombreRegion } from '../lib/regiones'
 export default function FeaturedTalleres() {
 
   const [talleres, setTalleres] = useState<any[]>([])
+  const [califMap, setCalifMap] = useState<Record<string, { promedio: number, total: number }>>({})
   const [cargando, setCargando] = useState(true)
   const router = useRouter()
 
@@ -24,6 +25,25 @@ export default function FeaturedTalleres() {
 
       if (error) console.error('Error cargando talleres:', error)
       else setTalleres(data || [])
+
+      const { data: califs } = await supabase
+        .from('calificaciones_talleres')
+        .select('taller_id, puntaje')
+
+      if (califs && califs.length > 0) {
+        const sumas: Record<string, number> = {}
+        const totales: Record<string, number> = {}
+        califs.forEach((c: any) => {
+          sumas[c.taller_id] = (sumas[c.taller_id] || 0) + c.puntaje
+          totales[c.taller_id] = (totales[c.taller_id] || 0) + 1
+        })
+        const map: Record<string, { promedio: number, total: number }> = {}
+        Object.keys(sumas).forEach(id => {
+          map[id] = { promedio: Math.round((sumas[id] / totales[id]) * 10) / 10, total: totales[id] }
+        })
+        setCalifMap(map)
+      }
+
       setCargando(false)
     }
     cargarTalleres()
@@ -100,9 +120,20 @@ export default function FeaturedTalleres() {
 
                 <div style={{fontSize: '12px', color: '#888', marginBottom: '14px'}}>🕐 {taller.horario}</div>
 
-                <div style={{display: 'flex', alignItems: 'center', gap: '5px', paddingTop: '12px', borderTop: '1px solid #f0f0f0'}}>
-                  <div style={{width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e'}} />
-                  <span style={{fontSize: '12px', color: '#888'}}>{taller.comuna}</span>
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '12px', borderTop: '1px solid #f0f0f0'}}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                    <div style={{width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e'}} />
+                    <span style={{fontSize: '12px', color: '#888'}}>{taller.comuna}</span>
+                  </div>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+                    <span style={{fontSize: '13px'}}>⭐</span>
+                    <span style={{fontSize: '13px', fontWeight: '600', color: '#000'}}>
+                      {califMap[taller.id]?.promedio > 0 ? califMap[taller.id].promedio.toFixed(1) : '—'}
+                    </span>
+                    <span style={{fontSize: '12px', color: '#888'}}>
+                      ({califMap[taller.id]?.total || 0} {(califMap[taller.id]?.total || 0) === 1 ? 'calif.' : 'califs.'})
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
