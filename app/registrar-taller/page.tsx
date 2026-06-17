@@ -71,7 +71,7 @@ export default function RegistrarTaller() {
 
   const router = useRouter()
   const [cargando, setCargando] = useState(false)
-  const [error, setError] = useState('')
+  const [errores, setErrores] = useState<Record<string, string>>({})
   const [exito, setExito] = useState(false)
   const [usuario, setUsuario] = useState<any>(null)
   const [fotoFile, setFotoFile] = useState<File | null>(null)
@@ -79,22 +79,22 @@ export default function RegistrarTaller() {
   const inputFotoRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-  supabase.auth.getSession().then(async ({ data: { session } }) => {
-    if (!session) { router.push('/login'); return }
-    setUsuario(session.user)
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) { router.push('/login'); return }
+      setUsuario(session.user)
 
-    // Verificar que el usuario esté verificado
-    const { data: perfil } = await supabase
-      .from('perfiles')
-      .select('verificado')
-      .eq('id', session.user.id)
-      .single()
+      // Verificar que el usuario esté verificado
+      const { data: perfil } = await supabase
+        .from('perfiles')
+        .select('verificado')
+        .eq('id', session.user.id)
+        .single()
 
-    if (!perfil?.verificado) {
-      router.push('/verificar?origen=registrar-taller')
-    }
-  })
-}, [])
+      if (!perfil?.verificado) {
+        router.push('/verificar?origen=registrar-taller')
+      }
+    })
+  }, [])
 
   // Estado del formulario — teléfono eliminado (contacto se hace por WhatsApp del perfil)
   const [form, setForm] = useState({
@@ -135,80 +135,116 @@ export default function RegistrarTaller() {
 
   // Registra el taller en Supabase
   const handleRegistrar = async () => {
+    const nuevosErrores: Record<string, string> = {}
 
-    // Validaciones
-    if (!form.nombre) { setError('Ingresa el nombre del taller'); return }
-    if (!form.descripcion) { setError('Escribe una descripción'); return }
-    if (!form.direccion) { setError('Ingresa la dirección'); return }
-    if (!form.region) { setError('Selecciona la región'); return }
-    if (!form.comuna) { setError('Selecciona la comuna'); return }
-    // Teléfono eliminado — contacto por WhatsApp del perfil; horario tiene valor por defecto
-    if (form.servicios.length === 0) { setError('Selecciona al menos un servicio'); return }
+    const nombreLimpio = form.nombre.trim()
+    if (!nombreLimpio) {
+      nuevosErrores.nombre = 'Ingresa el nombre del taller'
+    } else if (nombreLimpio.length < 3) {
+      nuevosErrores.nombre = 'El nombre debe tener al menos 3 caracteres'
+    } else if (nombreLimpio.length > 80) {
+      nuevosErrores.nombre = 'El nombre no puede superar los 80 caracteres'
+    }
 
+    const descLimpia = form.descripcion.trim()
+    if (!descLimpia) {
+      nuevosErrores.descripcion = 'Escribe una descripción del taller'
+    } else if (descLimpia.length < 20) {
+      nuevosErrores.descripcion = 'La descripción debe tener al menos 20 caracteres'
+    } else if (descLimpia.length > 800) {
+      nuevosErrores.descripcion = 'La descripción no puede superar los 800 caracteres'
+    }
+
+    const direccionLimpia = form.direccion.trim()
+    if (!direccionLimpia) {
+      nuevosErrores.direccion = 'Ingresa la dirección del taller'
+    } else if (direccionLimpia.length < 5) {
+      nuevosErrores.direccion = 'Ingresa una dirección válida'
+    } else if (direccionLimpia.length > 120) {
+      nuevosErrores.direccion = 'La dirección no puede superar los 120 caracteres'
+    }
+
+    if (!form.region) nuevosErrores.region = 'Selecciona la región'
+    if (form.region && !form.comuna) nuevosErrores.comuna = 'Selecciona la comuna'
+
+    if (form.horario_inicio >= form.horario_fin) {
+      nuevosErrores.horario = 'La hora de inicio debe ser menor a la hora de cierre'
+    }
+
+    if (form.servicios.length === 0) {
+      nuevosErrores.servicios = 'Selecciona al menos un servicio'
+    }
+
+    if (fotoFile) {
+      if (!fotoFile.type.startsWith('image/')) {
+        nuevosErrores.foto = 'Solo se permiten archivos de imagen'
+      } else if (fotoFile.size > 5 * 1024 * 1024) {
+        nuevosErrores.foto = 'La foto debe pesar menos de 5MB'
+      }
+    }
+
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrores(nuevosErrores)
+      window.scrollTo({ top: 200, behavior: 'smooth' })
+      return
+    }
+
+    setErrores({})
     setCargando(true)
-    setError('')
 
     try {
       let foto_url = ''
 
-      // Subir foto si hay una seleccionada
       if (fotoFile) {
-        const nombreArchivo = `talleres/${usuario.id}/${Date.now()}-${fotoFile.name}`
-        const { error: uploadError } = await supabase.storage
-          .from('autos-fotos')
-          .upload(nombreArchivo, fotoFile)
-
+        const nombreArchivo = `talleres/${usuario.id}/${Date.now()}-${fotoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+        const { error: uploadError } = await supabase.storage.from('autos-fotos').upload(nombreArchivo, fotoFile)
         if (!uploadError) {
-          const { data: urlData } = supabase.storage
-            .from('autos-fotos')
-            .getPublicUrl(nombreArchivo)
+          const { data: urlData } = supabase.storage.from('autos-fotos').getPublicUrl(nombreArchivo)
           foto_url = urlData.publicUrl
         }
       }
 
-      // Insertar el taller en Supabase
-      const { error: insertError } = await supabase
-        .from('talleres')
-        .insert({
-          nombre: form.nombre,
-          descripcion: form.descripcion,
-          direccion: form.direccion,
-          region: form.region,
-          comuna: form.comuna,
-          // Horario como texto y como enteros para mostrar en detalle
-          horario: `${form.horario_inicio}:00 - ${form.horario_fin}:00`,
-          horario_inicio: form.horario_inicio,
-          horario_fin: form.horario_fin,
-          servicios: form.servicios.join(','),
-          foto_url,
-          propietario_id: usuario?.id,
-        })
+      const { error: insertError } = await supabase.from('talleres').insert({
+        nombre: nombreLimpio,
+        descripcion: descLimpia,
+        direccion: direccionLimpia,
+        region: form.region,
+        comuna: form.comuna,
+        horario: `${form.horario_inicio}:00 - ${form.horario_fin}:00`,
+        horario_inicio: form.horario_inicio,
+        horario_fin: form.horario_fin,
+        servicios: form.servicios.join(','),
+        foto_url,
+        propietario_id: usuario?.id,
+      })
 
       if (insertError) {
-        setError('Error al registrar: ' + insertError.message)
+        setErrores({ general: 'Error al registrar: ' + insertError.message })
         setCargando(false)
         return
       }
 
       setExito(true)
     } catch (err) {
-      setError('Ocurrió un error inesperado')
+      setErrores({ general: 'Ocurrió un error inesperado. Intenta de nuevo.' })
     }
     setCargando(false)
   }
 
-  const inputStyle: React.CSSProperties = {
+  const inputStyle = (campo: string): React.CSSProperties => ({
     width: '100%', padding: '12px 16px', fontSize: '14px',
-    border: '1.5px solid #e5e5e5', borderRadius: '10px',
+    border: `1.5px solid ${errores[campo] ? '#dc2626' : '#e5e5e5'}`, borderRadius: '10px',
     background: '#fafafa', color: '#000', boxSizing: 'border-box', outline: 'none',
-  }
+  })
 
   const labelStyle: React.CSSProperties = {
     fontSize: '12px', fontWeight: '700', color: '#555',
     letterSpacing: '0.5px', display: 'block', marginBottom: '6px',
   }
 
-  const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer' }
+  const errorMsg = (campo: string) => errores[campo] ? (
+    <p style={{fontSize: '12px', color: '#dc2626', marginTop: '4px'}}>⚠ {errores[campo]}</p>
+  ) : null
 
   // Pantalla de éxito
   if (exito) {
@@ -264,7 +300,7 @@ export default function RegistrarTaller() {
               style={{
                 width: '100%', height: '180px',
                 borderRadius: '12px',
-                border: '2px dashed #e5e5e5',
+                border: `2px dashed ${errores.foto ? '#dc2626' : '#e5e5e5'}`,
                 background: fotoPreview ? 'transparent' : '#fafafa',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', overflow: 'hidden', position: 'relative',
@@ -280,12 +316,16 @@ export default function RegistrarTaller() {
               )}
             </div>
             <input ref={inputFotoRef} type="file" accept="image/*" onChange={handleFoto} style={{display: 'none'}} />
+            {errores.foto && (
+              <p style={{fontSize: '12px', color: '#dc2626', marginTop: '4px'}}>⚠ {errores.foto}</p>
+            )}
           </div>
 
           {/* Nombre */}
           <div>
             <label style={labelStyle}>NOMBRE DEL TALLER</label>
-            <input className="input-pub" style={inputStyle} type="text" placeholder="Ej: Taller Mecánico El Rápido" value={form.nombre} onChange={(e) => updateForm('nombre', e.target.value)} />
+            <input className="input-pub" style={inputStyle('nombre')} type="text" placeholder="Ej: Taller Mecánico El Rápido" value={form.nombre} onChange={(e) => updateForm('nombre', e.target.value)} />
+            {errorMsg('nombre')}
           </div>
 
           {/* Descripción */}
@@ -296,32 +336,40 @@ export default function RegistrarTaller() {
               placeholder="Describe los servicios que ofreces, tu experiencia, especialidades..."
               value={form.descripcion}
               onChange={(e) => updateForm('descripcion', e.target.value)}
-              style={{...inputStyle, minHeight: '100px', resize: 'vertical', lineHeight: 1.6}}
+              style={{...inputStyle('descripcion'), minHeight: '100px', resize: 'vertical', lineHeight: 1.6}}
             />
+            <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '4px'}}>
+              {errores.descripcion && <p style={{fontSize: '12px', color: '#dc2626'}}>⚠ {errores.descripcion}</p>}
+              <p style={{fontSize: '12px', color: form.descripcion.length > 700 ? '#f59e0b' : '#aaa', marginLeft: 'auto'}}>
+                {form.descripcion.length}/800
+              </p>
+            </div>
           </div>
 
           {/* Dirección */}
           <div>
             <label style={labelStyle}>DIRECCIÓN</label>
-            <input className="input-pub" style={inputStyle} type="text" placeholder="Ej: Av. Grecia 1234" value={form.direccion} onChange={(e) => updateForm('direccion', e.target.value)} />
+            <input className="input-pub" style={inputStyle('direccion')} type="text" placeholder="Ej: Av. Grecia 1234" value={form.direccion} onChange={(e) => updateForm('direccion', e.target.value)} />
+            {errorMsg('direccion')}
           </div>
 
           {/* Región y comuna */}
           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
             <div>
               <label style={labelStyle}>REGIÓN</label>
-              <select className="input-pub" style={selectStyle} value={form.region} onChange={(e) => { updateForm('region', e.target.value); updateForm('comuna', '') }}>
+              <select className="input-pub" style={{...inputStyle('region'), cursor: 'pointer'}} value={form.region} onChange={(e) => { updateForm('region', e.target.value); updateForm('comuna', '') }}>
                 <option value="">Selecciona la región</option>
                 {REGIONES.map((r) => (
                   <option key={r.codigo} value={r.codigo}>{r.nombre}</option>
                 ))}
               </select>
+              {errorMsg('region')}
             </div>
             <div>
               <label style={labelStyle}>COMUNA</label>
               <select
                 className="input-pub"
-                style={{...selectStyle, opacity: !form.region ? 0.5 : 1}}
+                style={{...inputStyle('comuna'), cursor: 'pointer', opacity: !form.region ? 0.5 : 1}}
                 value={form.comuna}
                 onChange={(e) => updateForm('comuna', e.target.value)}
                 disabled={!form.region}
@@ -331,6 +379,7 @@ export default function RegistrarTaller() {
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
+              {errorMsg('comuna')}
             </div>
           </div>
 
@@ -342,7 +391,7 @@ export default function RegistrarTaller() {
                 className="input-pub"
                 value={form.horario_inicio}
                 onChange={(e) => updateForm('horario_inicio', Number(e.target.value))}
-                style={{...selectStyle, flex: 1}}
+                style={{...inputStyle('horario'), cursor: 'pointer', flex: 1}}
               >
                 {Array.from({length: 24}, (_, i) => (
                   <option key={i} value={i}>{i}:00</option>
@@ -353,13 +402,16 @@ export default function RegistrarTaller() {
                 className="input-pub"
                 value={form.horario_fin}
                 onChange={(e) => updateForm('horario_fin', Number(e.target.value))}
-                style={{...selectStyle, flex: 1}}
+                style={{...inputStyle('horario'), cursor: 'pointer', flex: 1}}
               >
                 {Array.from({length: 24}, (_, i) => (
                   <option key={i} value={i}>{i}:00</option>
                 ))}
               </select>
             </div>
+            {errores.horario && (
+              <p style={{fontSize: '12px', color: '#dc2626', marginTop: '4px'}}>⚠ {errores.horario}</p>
+            )}
           </div>
 
           {/* Servicios — selección múltiple con pills */}
@@ -384,12 +436,15 @@ export default function RegistrarTaller() {
                 </div>
               ))}
             </div>
+            {errores.servicios && (
+              <p style={{fontSize: '12px', color: '#dc2626', marginTop: '4px'}}>⚠ {errores.servicios}</p>
+            )}
           </div>
 
-          {/* Error */}
-          {error && (
+          {/* Error general */}
+          {errores.general && (
             <div style={{background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', fontSize: '13px'}}>
-              {error}
+              ⚠ {errores.general}
             </div>
           )}
 

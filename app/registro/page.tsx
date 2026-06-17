@@ -14,64 +14,101 @@ export default function Registro() {
 
   const router = useRouter()
 
-  // Estados para los campos del formulario
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [nombre, setNombre] = useState('')
-
-  // Estados para manejar errores y carga
   const [cargando, setCargando] = useState(false)
-  const [error, setError] = useState('')
+  const [errores, setErrores] = useState<Record<string, string>>({})
+  const [mostrarPassword, setMostrarPassword] = useState(false)
+  const [fuerzaPassword, setFuerzaPassword] = useState(0)
 
-  // Función que se ejecuta cuando el usuario hace clic en "Crear cuenta"
+  const validarEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+
+  const calcularFuerzaPassword = (pass: string) => {
+    let fuerza = 0
+    if (pass.length >= 8) fuerza++
+    if (pass.length >= 12) fuerza++
+    if (/[A-Z]/.test(pass)) fuerza++
+    if (/[0-9]/.test(pass)) fuerza++
+    if (/[^A-Za-z0-9]/.test(pass)) fuerza++
+    return fuerza
+  }
+
   const handleRegistro = async () => {
+    const nuevosErrores: Record<string, string> = {}
 
-    // Validación básica
-    if (!nombre) { setError('Por favor ingresa tu nombre'); return }
-    if (!email) { setError('Por favor ingresa tu correo'); return }
-    if (!password || password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres'); return }
+    const nombreLimpio = nombre.trim()
+    if (!nombreLimpio) {
+      nuevosErrores.nombre = 'El nombre es obligatorio'
+    } else if (nombreLimpio.length < 2) {
+      nuevosErrores.nombre = 'El nombre debe tener al menos 2 caracteres'
+    } else if (nombreLimpio.length > 60) {
+      nuevosErrores.nombre = 'El nombre no puede superar los 60 caracteres'
+    } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/.test(nombreLimpio)) {
+      nuevosErrores.nombre = 'El nombre solo puede contener letras y espacios'
+    }
 
+    const emailLimpio = email.trim().toLowerCase()
+    if (!emailLimpio) {
+      nuevosErrores.email = 'El correo es obligatorio'
+    } else if (!validarEmail(emailLimpio)) {
+      nuevosErrores.email = 'Ingresa un correo electrónico válido'
+    }
+
+    if (!password) {
+      nuevosErrores.password = 'La contraseña es obligatoria'
+    } else if (password.length < 8) {
+      nuevosErrores.password = 'La contraseña debe tener al menos 8 caracteres'
+    } else if (!/[A-Z]/.test(password)) {
+      nuevosErrores.password = 'Debe contener al menos una letra mayúscula'
+    } else if (!/[0-9]/.test(password)) {
+      nuevosErrores.password = 'Debe contener al menos un número'
+    }
+
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrores(nuevosErrores)
+      return
+    }
+
+    setErrores({})
     setCargando(true)
-    setError('')
 
     try {
-      // Paso 1: crear el usuario en Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
+        email: emailLimpio,
         password,
       })
 
       if (authError) {
-        setError(authError.message)
+        if (authError.message.includes('already registered')) {
+          setErrores({ email: 'Este correo ya está registrado. ¿Quieres iniciar sesión?' })
+        } else {
+          setErrores({ general: authError.message })
+        }
         setCargando(false)
         return
       }
 
-      // Paso 2: guardar datos adicionales en la tabla perfiles
-      // Supabase Auth solo guarda email y contraseña
-      // El nombre y otros datos van en nuestra tabla perfiles
       if (authData.user) {
         const { error: perfilError } = await supabase
           .from('perfiles')
           .insert({
             id: authData.user.id,
-            nombre,
-            email,
+            nombre: nombreLimpio,
+            email: emailLimpio,
             verificado: false,
           })
 
         if (perfilError) {
-          setError('Error al crear el perfil: ' + perfilError.message)
+          setErrores({ general: 'Error al crear el perfil: ' + perfilError.message })
           setCargando(false)
           return
         }
       }
 
-      // Si todo salió bien, redirigir al inicio
       router.push('/')
-
     } catch (err) {
-      setError('Ocurrió un error inesperado. Intenta de nuevo.')
+      setErrores({ general: 'Ocurrió un error inesperado. Intenta de nuevo.' })
       setCargando(false)
     }
   }
@@ -87,14 +124,12 @@ export default function Registro() {
         .link-hover:hover { color: #1d4ed8 !important; }
       `}</style>
 
-      {/* Imagen de fondo difuminada igual que login */}
       <img
         src="/hero-car.jpg"
         alt=""
         style={{position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(12px)', transform: 'scale(1.1)', zIndex: 0}}
       />
 
-      {/* Overlay */}
       <div style={{position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(245,245,245,0.55)', zIndex: 1}} />
 
       <Navbar />
@@ -121,8 +156,13 @@ export default function Registro() {
                 className="input-field"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                style={{width: '100%', padding: '14px 16px', fontSize: '15px', border: '1.5px solid #e5e5e5', borderRadius: '10px', background: '#fafafa', color: '#000', boxSizing: 'border-box'}}
+                style={{width: '100%', padding: '14px 16px', fontSize: '15px', border: `1.5px solid ${errores.nombre ? '#dc2626' : '#e5e5e5'}`, borderRadius: '10px', background: '#fafafa', color: '#000', boxSizing: 'border-box'}}
               />
+              {errores.nombre && (
+                <p style={{fontSize: '12px', color: '#dc2626', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px'}}>
+                  ⚠ {errores.nombre}
+                </p>
+              )}
             </div>
 
             {/* Correo electrónico */}
@@ -136,8 +176,13 @@ export default function Registro() {
                 className="input-field"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                style={{width: '100%', padding: '14px 16px', fontSize: '15px', border: '1.5px solid #e5e5e5', borderRadius: '10px', background: '#fafafa', color: '#000', boxSizing: 'border-box'}}
+                style={{width: '100%', padding: '14px 16px', fontSize: '15px', border: `1.5px solid ${errores.email ? '#dc2626' : '#e5e5e5'}`, borderRadius: '10px', background: '#fafafa', color: '#000', boxSizing: 'border-box'}}
               />
+              {errores.email && (
+                <p style={{fontSize: '12px', color: '#dc2626', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px'}}>
+                  ⚠ {errores.email}
+                </p>
+              )}
             </div>
 
             {/* Contraseña */}
@@ -145,21 +190,47 @@ export default function Registro() {
               <label style={{fontSize: '12px', fontWeight: '600', color: '#555', letterSpacing: '0.5px', display: 'block', marginBottom: '6px'}}>
                 CONTRASEÑA
               </label>
-              <input
-                type="password"
-                placeholder="Mínimo 8 caracteres"
-                className="input-field"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleRegistro()}
-                style={{width: '100%', padding: '14px 16px', fontSize: '15px', border: '1.5px solid #e5e5e5', borderRadius: '10px', background: '#fafafa', color: '#000', boxSizing: 'border-box'}}
-              />
+              <div style={{position: 'relative'}}>
+                <input
+                  type={mostrarPassword ? 'text' : 'password'}
+                  placeholder="Mínimo 8 caracteres"
+                  className="input-field"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setFuerzaPassword(calcularFuerzaPassword(e.target.value)) }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleRegistro()}
+                  style={{width: '100%', padding: '14px 48px 14px 16px', fontSize: '15px', border: `1.5px solid ${errores.password ? '#dc2626' : '#e5e5e5'}`, borderRadius: '10px', background: '#fafafa', color: '#000', boxSizing: 'border-box'}}
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrarPassword(!mostrarPassword)}
+                  style={{position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#888', fontSize: '16px'}}
+                >
+                  {mostrarPassword ? '🙈' : '👁'}
+                </button>
+              </div>
+              {password && (
+                <div style={{marginTop: '8px'}}>
+                  <div style={{display: 'flex', gap: '4px', marginBottom: '4px'}}>
+                    {[1,2,3,4,5].map(n => (
+                      <div key={n} style={{flex: 1, height: '4px', borderRadius: '2px', background: fuerzaPassword >= n ? (fuerzaPassword <= 2 ? '#ef4444' : fuerzaPassword <= 3 ? '#f59e0b' : '#22c55e') : '#e5e5e5', transition: 'background 0.2s'}}/>
+                    ))}
+                  </div>
+                  <p style={{fontSize: '11px', color: fuerzaPassword <= 2 ? '#ef4444' : fuerzaPassword <= 3 ? '#f59e0b' : '#22c55e'}}>
+                    {fuerzaPassword <= 2 ? 'Contraseña débil' : fuerzaPassword <= 3 ? 'Contraseña regular' : 'Contraseña fuerte'}
+                  </p>
+                </div>
+              )}
+              {errores.password && (
+                <p style={{fontSize: '12px', color: '#dc2626', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px'}}>
+                  ⚠ {errores.password}
+                </p>
+              )}
             </div>
 
-            {/* Mensaje de error */}
-            {error && (
+            {/* Error general */}
+            {errores.general && (
               <div style={{background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', fontSize: '13px'}}>
-                {error}
+                ⚠ {errores.general}
               </div>
             )}
 
@@ -173,13 +244,26 @@ export default function Registro() {
               {cargando ? 'Creando cuenta...' : 'Crear cuenta'}
             </button>
 
+            {/* Requisitos de contraseña */}
+            <div style={{background: '#f8fafc', borderRadius: '8px', padding: '12px 16px', border: '1px solid #e2e8f0'}}>
+              <p style={{fontSize: '11px', fontWeight: '700', color: '#64748B', marginBottom: '6px', letterSpacing: '0.5px'}}>REQUISITOS DE CONTRASEÑA</p>
+              {[
+                { texto: 'Mínimo 8 caracteres', ok: password.length >= 8 },
+                { texto: 'Una letra mayúscula', ok: /[A-Z]/.test(password) },
+                { texto: 'Un número', ok: /[0-9]/.test(password) },
+              ].map(req => (
+                <p key={req.texto} style={{fontSize: '12px', color: req.ok ? '#16a34a' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px', margin: '2px 0'}}>
+                  {req.ok ? '✓' : '○'} {req.texto}
+                </p>
+              ))}
+            </div>
+
             <div style={{display: 'flex', alignItems: 'center', gap: '12px', margin: '4px 0'}}>
               <div style={{flex: 1, height: '1px', background: '#eee'}} />
               <span style={{fontSize: '12px', color: '#aaa'}}>o</span>
               <div style={{flex: 1, height: '1px', background: '#eee'}} />
             </div>
 
-            {/* Link a login */}
             <p style={{textAlign: 'center', fontSize: '14px', color: '#666'}}>
               ¿Ya tienes cuenta?{' '}
               <a href="/login" className="link-hover" style={{color: '#2563eb', fontWeight: '600', textDecoration: 'none'}}>

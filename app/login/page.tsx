@@ -15,21 +15,66 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [cargando, setCargando] = useState(false)
-  const [error, setError] = useState('')
+  const [errores, setErrores] = useState<Record<string, string>>({})
+  const [mostrarPassword, setMostrarPassword] = useState(false)
+  const [intentosFallidos, setIntentosFallidos] = useState(0)
+  const [bloqueadoHasta, setBloqueadoHasta] = useState<number | null>(null)
+
+  const validarEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
   const handleLogin = async () => {
-    if (!email) { setError('Por favor ingresa tu correo'); return }
-    if (!password) { setError('Por favor ingresa tu contraseña'); return }
+    if (bloqueadoHasta && Date.now() < bloqueadoHasta) {
+      const segundosRestantes = Math.ceil((bloqueadoHasta - Date.now()) / 1000)
+      setErrores({ general: `Demasiados intentos. Espera ${segundosRestantes} segundos.` })
+      return
+    }
 
+    const nuevosErrores: Record<string, string> = {}
+    const emailLimpio = email.trim().toLowerCase()
+
+    if (!emailLimpio) {
+      nuevosErrores.email = 'El correo es obligatorio'
+    } else if (!validarEmail(emailLimpio)) {
+      nuevosErrores.email = 'Ingresa un correo electrónico válido'
+    }
+
+    if (!password) {
+      nuevosErrores.password = 'La contraseña es obligatoria'
+    }
+
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrores(nuevosErrores)
+      return
+    }
+
+    setErrores({})
     setCargando(true)
-    setError('')
 
     try {
-      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
-      if (loginError) { setError('Correo o contraseña incorrectos'); setCargando(false); return }
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: emailLimpio,
+        password
+      })
+
+      if (loginError) {
+        const nuevosIntentos = intentosFallidos + 1
+        setIntentosFallidos(nuevosIntentos)
+
+        if (nuevosIntentos >= 5) {
+          setBloqueadoHasta(Date.now() + 30000)
+          setErrores({ general: 'Demasiados intentos fallidos. Espera 30 segundos.' })
+          setIntentosFallidos(0)
+        } else {
+          setErrores({ general: `Correo o contraseña incorrectos. Intento ${nuevosIntentos} de 5.` })
+        }
+        setCargando(false)
+        return
+      }
+
+      setIntentosFallidos(0)
       router.push('/')
     } catch {
-      setError('Ocurrió un error inesperado. Intenta de nuevo.')
+      setErrores({ general: 'Ocurrió un error inesperado. Intenta de nuevo.' })
       setCargando(false)
     }
   }
@@ -65,6 +110,7 @@ export default function Login() {
 
           <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
 
+            {/* Correo electrónico */}
             <div>
               <label style={{fontSize: '12px', fontWeight: '600', color: '#555', letterSpacing: '0.5px', display: 'block', marginBottom: '6px'}}>
                 CORREO ELECTRÓNICO
@@ -76,32 +122,59 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                style={{width: '100%', padding: '14px 16px', fontSize: '15px', border: '1.5px solid #e5e5e5', borderRadius: '10px', background: '#fafafa', color: '#000', boxSizing: 'border-box'}}
+                style={{width: '100%', padding: '14px 16px', fontSize: '15px', border: `1.5px solid ${errores.email ? '#dc2626' : '#e5e5e5'}`, borderRadius: '10px', background: '#fafafa', color: '#000', boxSizing: 'border-box'}}
               />
+              {errores.email && (
+                <p style={{fontSize: '12px', color: '#dc2626', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px'}}>
+                  ⚠ {errores.email}
+                </p>
+              )}
             </div>
 
+            {/* Contraseña */}
             <div>
               <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '6px'}}>
                 <label style={{fontSize: '12px', fontWeight: '600', color: '#555', letterSpacing: '0.5px'}}>CONTRASEÑA</label>
-                {/* Al hacer clic redirige a la página de recuperación de contraseña */}
-<a href="/recuperar-password" className="link-hover" style={{fontSize: '12px', color: '#2563eb', fontWeight: '600', textDecoration: 'none'}}>
-  ¿Olvidaste tu contraseña?
-</a>
+                <a href="/recuperar-password" className="link-hover" style={{fontSize: '12px', color: '#2563eb', fontWeight: '600', textDecoration: 'none'}}>
+                  ¿Olvidaste tu contraseña?
+                </a>
               </div>
-              <input
-                type="password"
-                placeholder="Tu contraseña"
-                className="input-field"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                style={{width: '100%', padding: '14px 16px', fontSize: '15px', border: '1.5px solid #e5e5e5', borderRadius: '10px', background: '#fafafa', color: '#000', boxSizing: 'border-box'}}
-              />
+              <div style={{position: 'relative'}}>
+                <input
+                  type={mostrarPassword ? 'text' : 'password'}
+                  placeholder="Tu contraseña"
+                  className="input-field"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                  style={{width: '100%', padding: '14px 48px 14px 16px', fontSize: '15px', border: `1.5px solid ${errores.password ? '#dc2626' : '#e5e5e5'}`, borderRadius: '10px', background: '#fafafa', color: '#000', boxSizing: 'border-box'}}
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrarPassword(!mostrarPassword)}
+                  style={{position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#888', fontSize: '16px'}}
+                >
+                  {mostrarPassword ? '🙈' : '👁'}
+                </button>
+              </div>
+              {errores.password && (
+                <p style={{fontSize: '12px', color: '#dc2626', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px'}}>
+                  ⚠ {errores.password}
+                </p>
+              )}
             </div>
 
-            {error && (
-              <div style={{background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', fontSize: '13px'}}>
-                {error}
+            {/* Error general */}
+            {errores.general && (
+              <div style={{background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                ⚠ {errores.general}
+              </div>
+            )}
+
+            {/* Indicador de intentos fallidos */}
+            {intentosFallidos > 0 && intentosFallidos < 5 && (
+              <div style={{background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', padding: '10px 14px', borderRadius: '8px', fontSize: '12px'}}>
+                ⚠ {5 - intentosFallidos} intento{5 - intentosFallidos !== 1 ? 's' : ''} restante{5 - intentosFallidos !== 1 ? 's' : ''} antes de bloqueo temporal
               </div>
             )}
 

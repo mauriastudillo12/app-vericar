@@ -74,7 +74,7 @@ export default function PublicarAuto() {
 
   const router = useRouter()
   const [cargando, setCargando] = useState(false)
-  const [error, setError] = useState('')
+  const [errores, setErrores] = useState<Record<string, string>>({})
   const [exito, setExito] = useState(false)
   const [usuario, setUsuario] = useState<any>(null)
   const [fotos, setFotos] = useState<File[]>([])
@@ -83,22 +83,22 @@ export default function PublicarAuto() {
 
   // Verificar sesión al cargar — redirigir al login si no hay sesión
   useEffect(() => {
-  supabase.auth.getSession().then(async ({ data: { session } }) => {
-    if (!session) { router.push('/login'); return }
-    setUsuario(session.user)
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) { router.push('/login'); return }
+      setUsuario(session.user)
 
-    // Verificar que el usuario esté verificado
-    const { data: perfil } = await supabase
-      .from('perfiles')
-      .select('verificado')
-      .eq('id', session.user.id)
-      .single()
+      // Verificar que el usuario esté verificado
+      const { data: perfil } = await supabase
+        .from('perfiles')
+        .select('verificado')
+        .eq('id', session.user.id)
+        .single()
 
-    if (!perfil?.verificado) {
-      router.push('/verificar?origen=publicar-auto')
-    }
-  })
-}, [])
+      if (!perfil?.verificado) {
+        router.push('/verificar?origen=publicar-auto')
+      }
+    })
+  }, [])
 
   // Estado del formulario con todos los campos
   const [form, setForm] = useState({
@@ -123,7 +123,7 @@ export default function PublicarAuto() {
   const handleFotos = (e: React.ChangeEvent<HTMLInputElement>) => {
     const archivos = Array.from(e.target.files || [])
     if (archivos.length + fotos.length > 10) {
-      setError('Máximo 10 fotos por publicación')
+      setErrores(prev => ({ ...prev, fotos: 'Máximo 10 fotos por publicación' }))
       return
     }
     setFotos(prev => [...prev, ...archivos])
@@ -142,40 +142,94 @@ export default function PublicarAuto() {
 
   // Publica el auto en Supabase
   const handlePublicar = async () => {
+    const nuevosErrores: Record<string, string> = {}
 
-    // Validaciones básicas
-    if (!form.marca) { setError('Ingresa la marca'); return }
-    if (!form.modelo) { setError('Ingresa el modelo'); return }
-    if (!form.año) { setError('Ingresa el año'); return }
-    if (!form.km) { setError('Ingresa el kilometraje'); return }
-    if (!form.precio) { setError('Ingresa el precio'); return }
-    if (!form.combustible) { setError('Selecciona el combustible'); return }
-    if (!form.transmision) { setError('Selecciona la transmisión'); return }
-    if (!form.region) { setError('Selecciona la región'); return }
-    if (!form.descripcion) { setError('Escribe una descripción'); return }
-    if (fotos.length < 3) { setError('Sube al menos 3 fotos'); return }
+    if (!form.marca) nuevosErrores.marca = 'Selecciona la marca del auto'
 
+    const modeloLimpio = form.modelo.trim()
+    if (!modeloLimpio) {
+      nuevosErrores.modelo = 'Ingresa el modelo del auto'
+    } else if (modeloLimpio.length < 2) {
+      nuevosErrores.modelo = 'El modelo debe tener al menos 2 caracteres'
+    } else if (modeloLimpio.length > 40) {
+      nuevosErrores.modelo = 'El modelo no puede superar los 40 caracteres'
+    }
+
+    const añoNum = parseInt(form.año)
+    const añoActual = new Date().getFullYear()
+    if (!form.año) {
+      nuevosErrores.año = 'Ingresa el año del auto'
+    } else if (isNaN(añoNum) || añoNum < 1950 || añoNum > añoActual + 1) {
+      nuevosErrores.año = `El año debe estar entre 1950 y ${añoActual + 1}`
+    }
+
+    const kmNum = parseInt(form.km)
+    if (!form.km) {
+      nuevosErrores.km = 'Ingresa el kilometraje'
+    } else if (isNaN(kmNum) || kmNum < 0) {
+      nuevosErrores.km = 'El kilometraje debe ser un número positivo'
+    } else if (kmNum > 2000000) {
+      nuevosErrores.km = 'El kilometraje ingresado parece incorrecto'
+    }
+
+    const precioNum = parseInt(form.precio.replace(/\./g, '').replace(/[^0-9]/g, ''))
+    if (!form.precio) {
+      nuevosErrores.precio = 'Ingresa el precio del auto'
+    } else if (isNaN(precioNum) || precioNum <= 0) {
+      nuevosErrores.precio = 'Ingresa un precio válido'
+    } else if (precioNum < 100000) {
+      nuevosErrores.precio = 'El precio mínimo es $100.000'
+    } else if (precioNum > 500000000) {
+      nuevosErrores.precio = 'El precio ingresado parece incorrecto'
+    }
+
+    if (!form.combustible) nuevosErrores.combustible = 'Selecciona el tipo de combustible'
+    if (!form.transmision) nuevosErrores.transmision = 'Selecciona la transmisión'
+    if (!form.region) nuevosErrores.region = 'Selecciona la región'
+    if (form.region && !form.comuna) nuevosErrores.comuna = 'Selecciona la comuna'
+
+    const descLimpia = form.descripcion.trim()
+    if (!descLimpia) {
+      nuevosErrores.descripcion = 'Escribe una descripción del auto'
+    } else if (descLimpia.length < 20) {
+      nuevosErrores.descripcion = 'La descripción debe tener al menos 20 caracteres'
+    } else if (descLimpia.length > 1000) {
+      nuevosErrores.descripcion = 'La descripción no puede superar los 1000 caracteres'
+    }
+
+    if (fotos.length < 3) nuevosErrores.fotos = 'Sube al menos 3 fotos del auto'
+
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrores(nuevosErrores)
+      window.scrollTo({ top: 200, behavior: 'smooth' })
+      return
+    }
+
+    setErrores({})
     setCargando(true)
-    setError('')
 
     try {
-      // Subir cada foto a Supabase Storage
       const urlsFotos: string[] = []
 
       for (const foto of fotos) {
-        const nombreArchivo = `${usuario.id}/${Date.now()}-${foto.name}`
+        if (!foto.type.startsWith('image/')) {
+          setErrores({ fotos: 'Solo se permiten archivos de imagen' })
+          setCargando(false)
+          return
+        }
+        if (foto.size > 5 * 1024 * 1024) {
+          setErrores({ fotos: 'Cada foto debe pesar menos de 5MB' })
+          setCargando(false)
+          return
+        }
+        const nombreArchivo = `${usuario.id}/${Date.now()}-${foto.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
 
         const { error: uploadError } = await supabase.storage
           .from('autos-fotos')
           .upload(nombreArchivo, foto)
 
-        if (uploadError) {
-          setError('Error subiendo foto: ' + uploadError.message)
-          setCargando(false)
-          return
-        }
+        if (uploadError) { setErrores({ general: 'Error subiendo foto: ' + uploadError.message }); setCargando(false); return }
 
-        // Obtener URL pública de la foto
         const { data: urlData } = supabase.storage
           .from('autos-fotos')
           .getPublicUrl(nombreArchivo)
@@ -183,51 +237,49 @@ export default function PublicarAuto() {
         urlsFotos.push(urlData.publicUrl)
       }
 
-      // Insertar el auto con las URLs de fotos como JSON string
       const { error: insertError } = await supabase
         .from('autos')
         .insert({
-          nombre: `${form.marca} ${form.modelo} ${form.año}`,
+          nombre: `${form.marca} ${modeloLimpio} ${form.año}`,
           marca: form.marca,
-          modelo: form.modelo,
-          año: parseInt(form.año),
-          km: parseInt(form.km),
-          precio: parseInt(form.precio.replace(/\./g, '').replace(/[^0-9]/g, '')),
+          modelo: modeloLimpio,
+          año: añoNum,
+          km: kmNum,
+          precio: precioNum,
           combustible: form.combustible,
           transmision: form.transmision,
           region: form.region,
-          descripcion: form.descripcion,
+          comuna: form.comuna,
+          descripcion: descLimpia,
           negociable: form.negociable,
           destacado: false,
           vendedor_id: usuario?.id,
           fotos: JSON.stringify(urlsFotos),
         })
 
-      if (insertError) {
-        setError('Error al publicar: ' + insertError.message)
-        setCargando(false)
-        return
-      }
+      if (insertError) { setErrores({ general: 'Error al publicar: ' + insertError.message }); setCargando(false); return }
 
       setExito(true)
     } catch (err) {
-      setError('Ocurrió un error inesperado')
+      setErrores({ general: 'Ocurrió un error inesperado. Intenta de nuevo.' })
     }
     setCargando(false)
   }
 
-  const inputStyle: React.CSSProperties = {
+  const inputStyle = (campo: string): React.CSSProperties => ({
     width: '100%', padding: '12px 16px', fontSize: '14px',
-    border: '1.5px solid #e5e5e5', borderRadius: '10px',
+    border: `1.5px solid ${errores[campo] ? '#dc2626' : '#e5e5e5'}`, borderRadius: '10px',
     background: '#fafafa', color: '#000', boxSizing: 'border-box', outline: 'none',
-  }
+  })
 
   const labelStyle: React.CSSProperties = {
     fontSize: '12px', fontWeight: '700', color: '#555',
     letterSpacing: '0.5px', display: 'block', marginBottom: '6px',
   }
 
-  const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer' }
+  const errorMsg = (campo: string) => errores[campo] ? (
+    <p style={{fontSize: '12px', color: '#dc2626', marginTop: '4px'}}>⚠ {errores[campo]}</p>
+  ) : null
 
   // Pantalla de éxito después de publicar
   if (exito) {
@@ -289,16 +341,17 @@ export default function PublicarAuto() {
           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
             <div>
               <label style={labelStyle}>MARCA</label>
-              <select className="input-pub" style={selectStyle} value={form.marca} onChange={(e) => updateForm('marca', e.target.value)}>
+              <select className="input-pub" style={{...inputStyle('marca'), cursor: 'pointer'}} value={form.marca} onChange={(e) => updateForm('marca', e.target.value)}>
                 <option value="">Selecciona la marca</option>
-                {/* Marcas generadas desde la constante MARCAS */}
                 {MARCAS.map(m => <option key={m}>{m}</option>)}
                 <option>Otra</option>
               </select>
+              {errorMsg('marca')}
             </div>
             <div>
               <label style={labelStyle}>MODELO</label>
-              <input className="input-pub" style={inputStyle} type="text" placeholder="Ej: Corolla" value={form.modelo} onChange={(e) => updateForm('modelo', e.target.value)} />
+              <input className="input-pub" style={inputStyle('modelo')} type="text" placeholder="Ej: Corolla" value={form.modelo} onChange={(e) => updateForm('modelo', e.target.value)} />
+              {errorMsg('modelo')}
             </div>
           </div>
 
@@ -306,11 +359,13 @@ export default function PublicarAuto() {
           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
             <div>
               <label style={labelStyle}>AÑO</label>
-              <input className="input-pub" style={inputStyle} type="number" placeholder="Ej: 2020" value={form.año} onChange={(e) => updateForm('año', e.target.value)} />
+              <input className="input-pub" style={inputStyle('año')} type="number" placeholder="Ej: 2020" value={form.año} onChange={(e) => updateForm('año', e.target.value)} />
+              {errorMsg('año')}
             </div>
             <div>
               <label style={labelStyle}>KILOMETRAJE</label>
-              <input className="input-pub" style={inputStyle} type="number" placeholder="Ej: 45000" value={form.km} onChange={(e) => updateForm('km', e.target.value)} />
+              <input className="input-pub" style={inputStyle('km')} type="number" placeholder="Ej: 45000" value={form.km} onChange={(e) => updateForm('km', e.target.value)} />
+              {errorMsg('km')}
             </div>
           </div>
 
@@ -318,18 +373,20 @@ export default function PublicarAuto() {
           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
             <div>
               <label style={labelStyle}>COMBUSTIBLE</label>
-              <select className="input-pub" style={selectStyle} value={form.combustible} onChange={(e) => updateForm('combustible', e.target.value)}>
+              <select className="input-pub" style={{...inputStyle('combustible'), cursor: 'pointer'}} value={form.combustible} onChange={(e) => updateForm('combustible', e.target.value)}>
                 <option value="">Selecciona</option>
                 <option>Bencina</option><option>Diésel</option>
                 <option>Eléctrico</option><option>Híbrido</option>
               </select>
+              {errorMsg('combustible')}
             </div>
             <div>
               <label style={labelStyle}>TRANSMISIÓN</label>
-              <select className="input-pub" style={selectStyle} value={form.transmision} onChange={(e) => updateForm('transmision', e.target.value)}>
+              <select className="input-pub" style={{...inputStyle('transmision'), cursor: 'pointer'}} value={form.transmision} onChange={(e) => updateForm('transmision', e.target.value)}>
                 <option value="">Selecciona</option>
                 <option>Automático</option><option>Manual</option>
               </select>
+              {errorMsg('transmision')}
             </div>
           </div>
 
@@ -338,16 +395,18 @@ export default function PublicarAuto() {
             <div>
               <label style={labelStyle}>PRECIO (en pesos)</label>
               {/* inputMode="numeric" muestra teclado numérico en móvil */}
-              <input className="input-pub" style={inputStyle} type="text" inputMode="numeric" placeholder="Ej: 12.000.000" value={form.precio} onChange={(e) => handlePrecioChange(e.target.value)} />
+              <input className="input-pub" style={inputStyle('precio')} type="text" inputMode="numeric" placeholder="Ej: 12.000.000" value={form.precio} onChange={(e) => handlePrecioChange(e.target.value)} />
+              {errorMsg('precio')}
             </div>
             <div>
               <label style={labelStyle}>REGIÓN</label>
-              <select className="input-pub" style={selectStyle} value={form.region} onChange={(e) => { updateForm('region', e.target.value); updateForm('comuna', '') }}>
+              <select className="input-pub" style={{...inputStyle('region'), cursor: 'pointer'}} value={form.region} onChange={(e) => { updateForm('region', e.target.value); updateForm('comuna', '') }}>
                 <option value="">Selecciona la región</option>
                 {REGIONES.map((r) => (
                   <option key={r.codigo} value={r.codigo}>{r.nombre}</option>
                 ))}
               </select>
+              {errorMsg('region')}
             </div>
           </div>
 
@@ -355,12 +414,13 @@ export default function PublicarAuto() {
           {form.region && (
             <div>
               <label style={labelStyle}>COMUNA</label>
-              <select className="input-pub" style={selectStyle} value={form.comuna} onChange={(e) => updateForm('comuna', e.target.value)}>
+              <select className="input-pub" style={{...inputStyle('comuna'), cursor: 'pointer'}} value={form.comuna} onChange={(e) => updateForm('comuna', e.target.value)}>
                 <option value="">Selecciona la comuna</option>
                 {(COMUNAS[form.region] || []).map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
+              {errorMsg('comuna')}
             </div>
           )}
 
@@ -372,8 +432,14 @@ export default function PublicarAuto() {
               placeholder="Describe tu auto con todo el detalle que quieras..."
               value={form.descripcion}
               onChange={(e) => updateForm('descripcion', e.target.value)}
-              style={{...inputStyle, minHeight: '120px', resize: 'vertical', lineHeight: 1.6}}
+              style={{...inputStyle('descripcion'), minHeight: '120px', resize: 'vertical', lineHeight: 1.6}}
             />
+            <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '4px'}}>
+              {errores.descripcion && <p style={{fontSize: '12px', color: '#dc2626'}}>⚠ {errores.descripcion}</p>}
+              <p style={{fontSize: '12px', color: form.descripcion.length > 900 ? '#f59e0b' : '#aaa', marginLeft: 'auto'}}>
+                {form.descripcion.length}/1000
+              </p>
+            </div>
           </div>
 
           {/* Fotos */}
@@ -401,7 +467,7 @@ export default function PublicarAuto() {
                 <div
                   className="foto-slot"
                   onClick={() => inputFotosRef.current?.click()}
-                  style={{aspectRatio: '1', borderRadius: '10px', border: '2px dashed #e5e5e5', background: '#fafafa', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: '6px'}}
+                  style={{aspectRatio: '1', borderRadius: '10px', border: `2px dashed ${errores.fotos ? '#dc2626' : '#e5e5e5'}`, background: '#fafafa', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: '6px'}}
                 >
                   <span style={{fontSize: '24px', color: '#ccc'}}>+</span>
                   <span style={{fontSize: '11px', color: '#aaa'}}>Agregar</span>
@@ -415,6 +481,9 @@ export default function PublicarAuto() {
             <p style={{fontSize: '12px', color: '#aaa'}}>
               {fotos.length} de 10 fotos · {fotos.length < 3 ? `Faltan ${3 - fotos.length} para el mínimo` : '✓ Mínimo cumplido'}
             </p>
+            {errores.fotos && (
+              <p style={{fontSize: '12px', color: '#dc2626', marginTop: '4px'}}>⚠ {errores.fotos}</p>
+            )}
           </div>
 
           {/* Precio negociable */}
@@ -428,10 +497,10 @@ export default function PublicarAuto() {
             </div>
           </div>
 
-          {/* Mensaje de error */}
-          {error && (
+          {/* Error general */}
+          {errores.general && (
             <div style={{background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', fontSize: '13px'}}>
-              {error}
+              ⚠ {errores.general}
             </div>
           )}
 
