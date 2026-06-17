@@ -7,6 +7,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { supabase } from '../lib/supabase'
+import ProtegerRuta from '../components/ProtegerRuta'
+import { sanitizarTexto } from '../lib/sanitizar'
 
 // Regiones de Chile
 const REGIONES = [
@@ -79,20 +81,8 @@ export default function RegistrarTaller() {
   const inputFotoRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) { router.push('/login'); return }
-      setUsuario(session.user)
-
-      // Verificar que el usuario esté verificado
-      const { data: perfil } = await supabase
-        .from('perfiles')
-        .select('verificado')
-        .eq('id', session.user.id)
-        .single()
-
-      if (!perfil?.verificado) {
-        router.push('/verificar?origen=registrar-taller')
-      }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setUsuario(session.user)
     })
   }, [])
 
@@ -205,9 +195,9 @@ export default function RegistrarTaller() {
       }
 
       const { error: insertError } = await supabase.from('talleres').insert({
-        nombre: nombreLimpio,
-        descripcion: descLimpia,
-        direccion: direccionLimpia,
+        nombre: sanitizarTexto(nombreLimpio),
+        descripcion: sanitizarTexto(descLimpia),
+        direccion: sanitizarTexto(direccionLimpia),
         region: form.region,
         comuna: form.comuna,
         horario: `${form.horario_inicio}:00 - ${form.horario_fin}:00`,
@@ -266,6 +256,7 @@ export default function RegistrarTaller() {
   }
 
   return (
+    <ProtegerRuta requiereVerificado={true} origenVerificacion="registrar-taller">
     <main style={{minHeight: '100vh', background: '#f5f5f5'}}>
 
       <style>{`
@@ -461,5 +452,6 @@ export default function RegistrarTaller() {
         </div>
       </div>
     </main>
+    </ProtegerRuta>
   )
 }

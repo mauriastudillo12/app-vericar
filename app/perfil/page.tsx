@@ -13,6 +13,7 @@ import Link from 'next/link'
 import Navbar from '../components/Navbar'
 import { supabase } from '../lib/supabase'
 import { getNombreRegion } from '../lib/regiones'
+import ProtegerRuta from '../components/ProtegerRuta'
 
 export default function Perfil() {
 
@@ -41,7 +42,7 @@ export default function Perfil() {
   useEffect(() => {
     const cargarPerfil = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { router.push('/login'); return }
+      if (!session) return
       setUsuario(session.user)
 
       const { data: perfilData } = await supabase
@@ -154,6 +155,7 @@ export default function Perfil() {
   }
 
   return (
+    <ProtegerRuta>
     <main style={{minHeight: '100vh', background: '#f5f5f5'}}>
 
       <style>{`
@@ -673,5 +675,6 @@ export default function Perfil() {
         </div>
       </div>
     </main>
+    </ProtegerRuta>
   )
 }

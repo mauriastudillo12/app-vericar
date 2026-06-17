@@ -8,6 +8,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { supabase } from '../lib/supabase'
+import ProtegerRuta from '../components/ProtegerRuta'
+import { sanitizarTexto } from '../lib/sanitizar'
 
 // Regiones de Chile
 const REGIONES = [
@@ -81,20 +83,8 @@ export default function PublicarRepuesto() {
   const inputFotosRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) { router.push('/login'); return }
-      setUsuario(session.user)
-
-      // Verificar que el usuario esté verificado
-      const { data: perfil } = await supabase
-        .from('perfiles')
-        .select('verificado')
-        .eq('id', session.user.id)
-        .single()
-
-      if (!perfil?.verificado) {
-        router.push('/verificar?origen=publicar-repuesto')
-      }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setUsuario(session.user)
     })
   }, [])
 
@@ -221,16 +211,16 @@ export default function PublicarRepuesto() {
       }
 
       const { error: insertError } = await supabase.from('repuestos').insert({
-        nombre: nombreLimpio,
+        nombre: sanitizarTexto(nombreLimpio),
         categoria: form.categoria,
         marca_compatible: form.marca_compatible,
-        modelo_compatible: modeloLimpio || 'Universal',
+        modelo_compatible: sanitizarTexto(modeloLimpio) || 'Universal',
         precio: precioNum,
         estado: form.estado,
         garantia: form.garantia,
         region: form.region,
         comuna: form.comuna,
-        descripcion: descLimpia,
+        descripcion: sanitizarTexto(descLimpia),
         vendedor_id: usuario?.id,
         fotos: JSON.stringify(urlsFotos),
       })
@@ -291,6 +281,7 @@ export default function PublicarRepuesto() {
   }
 
   return (
+    <ProtegerRuta requiereVerificado={true} origenVerificacion="publicar-repuesto">
     <main style={{minHeight: '100vh', background: '#f5f5f5'}}>
 
       <style>{`
@@ -519,5 +510,6 @@ export default function PublicarRepuesto() {
         </div>
       </div>
     </main>
+    </ProtegerRuta>
   )
 }

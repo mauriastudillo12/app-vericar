@@ -9,6 +9,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { supabase } from '../lib/supabase'
+import ProtegerRuta from '../components/ProtegerRuta'
+import { sanitizarTexto } from '../lib/sanitizar'
 
 // Regiones de Chile
 const REGIONES = [
@@ -83,20 +85,8 @@ export default function PublicarAuto() {
 
   // Verificar sesión al cargar — redirigir al login si no hay sesión
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) { router.push('/login'); return }
-      setUsuario(session.user)
-
-      // Verificar que el usuario esté verificado
-      const { data: perfil } = await supabase
-        .from('perfiles')
-        .select('verificado')
-        .eq('id', session.user.id)
-        .single()
-
-      if (!perfil?.verificado) {
-        router.push('/verificar?origen=publicar-auto')
-      }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setUsuario(session.user)
     })
   }, [])
 
@@ -240,9 +230,9 @@ export default function PublicarAuto() {
       const { error: insertError } = await supabase
         .from('autos')
         .insert({
-          nombre: `${form.marca} ${modeloLimpio} ${form.año}`,
+          nombre: sanitizarTexto(`${form.marca} ${modeloLimpio} ${form.año}`),
           marca: form.marca,
-          modelo: modeloLimpio,
+          modelo: sanitizarTexto(modeloLimpio),
           año: añoNum,
           km: kmNum,
           precio: precioNum,
@@ -250,7 +240,7 @@ export default function PublicarAuto() {
           transmision: form.transmision,
           region: form.region,
           comuna: form.comuna,
-          descripcion: descLimpia,
+          descripcion: sanitizarTexto(descLimpia),
           negociable: form.negociable,
           destacado: false,
           vendedor_id: usuario?.id,
@@ -314,6 +304,7 @@ export default function PublicarAuto() {
   }
 
   return (
+    <ProtegerRuta requiereVerificado={true} origenVerificacion="publicar-auto">
     <main style={{minHeight: '100vh', background: '#f5f5f5'}}>
 
       <style>{`
@@ -517,5 +508,6 @@ export default function PublicarAuto() {
         </div>
       </div>
     </main>
+    </ProtegerRuta>
   )
 }

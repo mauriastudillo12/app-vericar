@@ -6,14 +6,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '../components/Navbar'
 import { supabase } from '../lib/supabase'
+import ProtegerRuta from '../components/ProtegerRuta'
 
 export default function Admin() {
 
-  const router = useRouter()
   const [cargando, setCargando] = useState(true)
   const [tabActiva, setTabActiva] = useState<'stats' | 'verificaciones' | 'autos' | 'repuestos' | 'talleres' | 'usuarios'>('stats')
 
@@ -25,23 +24,7 @@ export default function Admin() {
   const [verificacionesPendientes, setVerificacionesPendientes] = useState<any[]>([])
 
   useEffect(() => {
-    const verificarAdmin = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { router.push('/login'); return }
-
-      const { data: perfil } = await supabase
-        .from('perfiles')
-        .select('es_admin')
-        .eq('id', session.user.id)
-        .single()
-
-      if (!perfil?.es_admin) { router.push('/'); return }
-
-      await cargarTodo()
-      setCargando(false)
-    }
-
-    verificarAdmin()
+    cargarTodo().then(() => setCargando(false))
   }, [])
 
   const cargarTodo = async () => {
@@ -184,6 +167,7 @@ export default function Admin() {
   }
 
   return (
+    <ProtegerRuta requiereAdmin={true}>
     <main style={{minHeight: '100vh', background: '#f5f5f5'}}>
 
       <style>{`
@@ -559,5 +543,6 @@ export default function Admin() {
 
       </div>
     </main>
+    </ProtegerRuta>
   )
 }
