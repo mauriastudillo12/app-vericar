@@ -393,6 +393,18 @@ function AutosContent() {
 
                       {/* Imagen */}
                       <div style={{width: '100%', height: '180px', background: 'linear-gradient(135deg, #e8e8e8 0%, #d5d5d5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden'}}>
+                        {auto.destacado && (
+                          <div style={{
+                            position: 'absolute', top: '10px', left: '10px',
+                            background: '#2563eb', color: '#fff',
+                            fontSize: '10px', fontWeight: '700',
+                            padding: '3px 10px', borderRadius: '4px',
+                            letterSpacing: '1px', zIndex: 1,
+                            boxShadow: '0 2px 8px rgba(37,99,235,0.4)',
+                          }}>
+                            ★ DESTACADO
+                          </div>
+                        )}
                         {auto.negociable && (
                           <div style={{position: 'absolute', top: '10px', right: '10px', background: '#f0fdf4', color: '#16a34a', fontSize: '10px', fontWeight: '700', padding: '3px 8px', borderRadius: '4px', border: '1px solid #bbf7d0', zIndex: 1}}>
                             Negociable

@@ -346,6 +346,18 @@ export default function Repuestos() {
                             Con garantía
                           </div>
                         )}
+                        {rep.destacado && (
+                          <div style={{
+                            position: 'absolute', top: '10px', left: '10px',
+                            background: '#2563eb', color: '#fff',
+                            fontSize: '10px', fontWeight: '700',
+                            padding: '3px 10px', borderRadius: '4px',
+                            letterSpacing: '1px', zIndex: 2,
+                            boxShadow: '0 2px 8px rgba(37,99,235,0.4)',
+                          }}>
+                            ★ DESTACADO
+                          </div>
+                        )}
                         {(() => {
                           const fotosArray = typeof rep.fotos === 'string' && rep.fotos ? JSON.parse(rep.fotos) : rep.fotos
                           return fotosArray && fotosArray.length > 0

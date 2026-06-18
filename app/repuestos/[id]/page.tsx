@@ -184,6 +184,20 @@ export default function DetalleRepuesto() {
                 </div>
               )}
 
+              {/* Badge destacado */}
+              {repuesto.destacado && (
+                <div style={{
+                  position: 'absolute', bottom: '16px', left: '16px',
+                  background: '#2563eb', color: '#fff',
+                  fontSize: '11px', fontWeight: '700',
+                  padding: '5px 14px', borderRadius: '4px',
+                  letterSpacing: '1px', zIndex: 1,
+                  boxShadow: '0 2px 8px rgba(37,99,235,0.4)',
+                }}>
+                  ★ DESTACADO
+                </div>
+              )}
+
               {/* Foto real o placeholder */}
               {(() => {
                 const fotosArray = typeof repuesto.fotos === 'string' && repuesto.fotos
