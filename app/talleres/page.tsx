@@ -94,7 +94,7 @@ export default function Talleres() {
     if (servicio) query = query.ilike('servicios', `%${servicio}%`)
     // Busca en nombre, descripción, dirección y comuna para resultados más amplios
     if (textoBusqueda) query = query.or(`nombre.ilike.%${textoBusqueda}%,descripcion.ilike.%${textoBusqueda}%,direccion.ilike.%${textoBusqueda}%,comuna.ilike.%${textoBusqueda}%`)
-    query = query.order('created_at', { ascending: false })
+    query = query.order('destacado', { ascending: false }).order('created_at', { ascending: false })
     const { data, error } = await query
     if (error) console.error('Error:', error)
     else setTalleres(data || [])

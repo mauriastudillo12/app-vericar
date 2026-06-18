@@ -105,7 +105,7 @@ function AutosContent() {
     if (negociable) query = query.eq('negociable', true)
     // Busca en nombre, marca, modelo y descripción para resultados más amplios
     if (textoBusqueda) query = query.or(`nombre.ilike.%${textoBusqueda}%,marca.ilike.%${textoBusqueda}%,modelo.ilike.%${textoBusqueda}%,descripcion.ilike.%${textoBusqueda}%`)
-    query = query.order('created_at', { ascending: false })
+    query = query.order('destacado', { ascending: false }).order('created_at', { ascending: false })
     const { data, error } = await query
     if (error) console.error('Error:', error)
     else setAutos(data || [])

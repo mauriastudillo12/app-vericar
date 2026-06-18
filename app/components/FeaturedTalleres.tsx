@@ -97,7 +97,19 @@ export default function FeaturedTalleres() {
               style={{background: '#fff', borderRadius: '16px', overflow: 'hidden', border: '1px solid #eee', cursor: 'pointer'}}
             >
               {/* Imagen */}
-              <div style={{width: '100%', height: '180px', background: 'linear-gradient(135deg, #e8e8e8 0%, #d5d5d5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'}}>
+              <div style={{width: '100%', height: '180px', background: 'linear-gradient(135deg, #e8e8e8 0%, #d5d5d5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative'}}>
+                {taller.destacado && (
+                  <div style={{
+                    position: 'absolute', top: '12px', left: '12px',
+                    background: '#2563eb', color: '#fff',
+                    fontSize: '10px', fontWeight: '700',
+                    padding: '4px 10px', borderRadius: '4px',
+                    letterSpacing: '1px', zIndex: 1,
+                    boxShadow: '0 2px 8px rgba(37,99,235,0.4)',
+                  }}>
+                    ★ DESTACADO
+                  </div>
+                )}
                 {taller.foto_url
                   ? <img src={taller.foto_url} alt={taller.nombre} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
                   : <span style={{fontSize: '48px'}}>🏪</span>

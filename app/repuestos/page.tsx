@@ -98,7 +98,7 @@ export default function Repuestos() {
     if (garantia) query = query.eq('garantia', true)
     // Busca en nombre, marca compatible y descripción para resultados más amplios
     if (textoBusqueda) query = query.or(`nombre.ilike.%${textoBusqueda}%,marca_compatible.ilike.%${textoBusqueda}%,descripcion.ilike.%${textoBusqueda}%`)
-    query = query.order('created_at', { ascending: false })
+    query = query.order('destacado', { ascending: false }).order('created_at', { ascending: false })
     const { data, error } = await query
     if (error) console.error('Error:', error)
     else setRepuestos(data || [])
