@@ -21,6 +21,7 @@ export default function Registro() {
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [mostrarPassword, setMostrarPassword] = useState(false)
   const [fuerzaPassword, setFuerzaPassword] = useState(0)
+  const [aceptaTerminos, setAceptaTerminos] = useState(false)
 
   const validarEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
@@ -234,12 +235,39 @@ export default function Registro() {
               </div>
             )}
 
+            {/* Términos y condiciones */}
+            <div
+              onClick={() => setAceptaTerminos(!aceptaTerminos)}
+              style={{display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '4px 0'}}
+            >
+              <div style={{
+                width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0, marginTop: '1px',
+                border: aceptaTerminos ? '2px solid #2563eb' : '2px solid #ddd',
+                background: aceptaTerminos ? '#2563eb' : '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.2s',
+              }}>
+                {aceptaTerminos && <span style={{color: '#fff', fontSize: '11px', fontWeight: '700'}}>✓</span>}
+              </div>
+              <p style={{fontSize: '13px', color: '#666', lineHeight: 1.5}}>
+                Acepto los{' '}
+                <a
+                  href="/terminos"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{color: '#2563eb', fontWeight: '600', textDecoration: 'none'}}
+                >
+                  términos y condiciones
+                </a>
+                {' '}y la política de privacidad de Unimotor
+              </p>
+            </div>
+
             {/* Botón crear cuenta */}
             <button
               className="btn-submit"
               onClick={handleRegistro}
-              disabled={cargando}
-              style={{background: cargando ? '#93c5fd' : '#2563eb', color: '#fff', border: 'none', padding: '16px', borderRadius: '10px', fontSize: '15px', fontWeight: '700', cursor: cargando ? 'not-allowed' : 'pointer', marginTop: '8px'}}
+              disabled={cargando || !aceptaTerminos}
+              style={{background: cargando || !aceptaTerminos ? '#93c5fd' : '#2563eb', color: '#fff', border: 'none', padding: '16px', borderRadius: '10px', fontSize: '15px', fontWeight: '700', cursor: cargando || !aceptaTerminos ? 'not-allowed' : 'pointer', marginTop: '8px'}}
             >
               {cargando ? 'Creando cuenta...' : 'Crear cuenta'}
             </button>

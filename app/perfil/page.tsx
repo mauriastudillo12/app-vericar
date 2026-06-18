@@ -413,6 +413,39 @@ export default function Perfil() {
                 </button>
               </div>
             )}
+
+            {/* Zona de peligro */}
+            <div style={{background: '#fff', borderRadius: '16px', padding: '20px 24px', border: '1px solid #fee2e2'}}>
+              <h3 style={{fontSize: '14px', fontWeight: '700', color: '#000', marginBottom: '6px'}}>Zona de peligro</h3>
+              <p style={{fontSize: '12px', color: '#888', marginBottom: '16px', lineHeight: 1.6}}>
+                Al eliminar tu cuenta se borrarán permanentemente todos tus datos, publicaciones y favoritos. Esta acción no se puede deshacer.
+              </p>
+              <button
+                onClick={() => alert('Función disponible próximamente')}
+                style={{
+                  width: '100%',
+                  background: '#fff',
+                  color: '#dc2626',
+                  border: '1.5px solid #fecaca',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#fef2f2'
+                  e.currentTarget.style.borderColor = '#dc2626'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#fff'
+                  e.currentTarget.style.borderColor = '#fecaca'
+                }}
+              >
+                🗑 Eliminar mi cuenta
+              </button>
+            </div>
           </div>
 
           {/* Columna derecha */}
